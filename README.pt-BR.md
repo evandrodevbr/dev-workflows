@@ -47,6 +47,7 @@ Cada workflow força o agente a **provar** o trabalho em cada fase:
 | ⚙️ **Backend / API** | [workflows/wf-backend.md](workflows/wf-backend.md) | Contrato antes do handler, defaults seguros, auditoria OWASP, testes + caça de bugs adversarial |
 | 🏗️ **Arquitetura** | [workflows/wf-architecture.md](workflows/wf-architecture.md) | Requisitos mensuráveis, diagramas C4, ADRs, threat modeling, revisão |
 | 🛡️ **Security review** | [workflows/wf-security-review.md](workflows/wf-security-review.md) | Code review (front + back), CVEs conhecidas **e** consulta ao vivo de novas |
+| 📄 **README** | [workflows/wf-readme.md](workflows/wf-readme.md) | Criar/auditar/reescrever READMEs grounded nos fatos reais do repo |
 
 Cada arquivo é um `SKILL.md` padrão. A `description` no frontmatter é o gatilho: quando o contexto do agente bate, o workflow carrega sozinho. Funciona no [Hermes Agent](https://hermes-agent.nousresearch.com), Claude Code e qualquer coisa que leia o formato Agent Skills.
 
@@ -215,6 +216,7 @@ dev-workflows/
 │   └── wf-security-review.md
 ├── docs/
 │   └── SKILLS.md        # inventário completo de skills + instalação
+├── CONTRIBUTING.md      # o que melhorar, checks locais, processo de PR
 └── qa/                  # harness de qualidade, gates, meta-testes
     ├── wf_quality_harness.py
     ├── test_quality.py

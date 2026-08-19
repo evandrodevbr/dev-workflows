@@ -3,6 +3,24 @@
 Este é o inventário do que os workflows carregam. Cada skill é um diretório
 com um `SKILL.md`; para o Hermes Agent, vão em `~/.hermes/skills/`.
 
+## Workflows orquestradores (em `workflows/`)
+
+| Workflow | Para quê |
+|---|---|
+| `wf-frontend` | UI/design/PDF |
+| `wf-backend` | API/backend seguro |
+| `wf-architecture` | Arquitetura/ADR/C4 |
+| `wf-security-review` | Code review de segurança front+back |
+| `wf-readme` | Criar/auditar/reescrever READMEs grounded |
+
+## README (wf-readme)
+
+| Skill | Origem | O que faz |
+|---|---|---|
+| `readme-crafter` | [linhai0872/readme-crafter-skill](https://github.com/linhai0872/readme-crafter-skill) | Classifica projeto (tipo/público/temperamento) e gera README sob medida; 13 checks |
+| `good-readme` | [adewale/good-readme](https://github.com/adewale/good-readme) | Cria com exemplos reais OU audita contra 22 critérios (escala 100) |
+| `curating-readme` | [liang-senbei/curating-readme](https://github.com/liang-senbei/curating-readme) | Padroniza README + docs (CONTRIBUTING/CHANGELOG) com `audit-repo.sh` |
+
 ## Pilar de segurança (wf-security-review)
 
 | Skill | Origem | O que faz |
