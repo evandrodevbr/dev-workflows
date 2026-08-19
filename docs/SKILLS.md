@@ -26,6 +26,7 @@ com um `SKILL.md`; para o Hermes Agent, vão em `~/.hermes/skills/`.
 | `vercel-react-best-practices` | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | 40+ regras de perf React/Next |
 | `vercel-composition-patterns` | vercel-labs/agent-skills | Compound components, composição |
 | `animate` | [emilkowalski/skill](https://github.com/emilkowalski/skill) | Motion com propósito |
+| `impeccable` | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | Vocabulário de design: 23 comandos + 59 regras determinísticas anti-slop |
 | `anti-ai-slop` | local | Detecta padrão visual "gerado por IA" |
 | `avoid-ai-writing` | [conorbronsdon/avoid-ai-writing](https://github.com/conorbronsdon/avoid-ai-writing) | Remove AI-isms de texto/microcopy |
 
@@ -64,6 +65,7 @@ A maioria instala via `npx skills` (formato agentskills.io):
 npx skills add anthropics/skills --skill frontend-design
 npx skills add vercel-labs/agent-skills --skill vercel-react-best-practices
 npx skills add conorbronsdon/avoid-ai-writing
+npx skills add https://github.com/pbakaus/impeccable --skill impeccable
 ```
 
 As de segurança do OWASP e UnitOne instalam clonando e copiando o diretório

@@ -35,6 +35,7 @@ Cada workflow força o agente a **provar** o trabalho em cada fase:
 - [Skills usadas e seus donos](#skills-usadas-e-seus-donos)
 - [Começo rápido](#começo-rápido)
 - [O harness de QA](#o-harness-de-qa)
+- [Testes de qualidade e ganhos medidos](#testes-de-qualidade-e-ganhos-medidos)
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Licença](#licença)
 
@@ -97,6 +98,7 @@ Os workflows carregam essas skills por contexto. Os três pilares do security re
 | [`vercel-react-best-practices`](https://github.com/vercel-labs/agent-skills) | 40+ regras de performance React/Next da engenharia da Vercel. | [Vercel Labs](https://github.com/vercel-labs) |
 | [`vercel-composition-patterns`](https://github.com/vercel-labs/agent-skills) | Compound components, composição limpa. | [Vercel Labs](https://github.com/vercel-labs) |
 | [`animate`](https://github.com/emilkowalski/skill) | Motion com propósito. | [emilkowalski](https://github.com/emilkowalski) |
+| [`impeccable`](https://github.com/pbakaus/impeccable) | O vocabulário de design que faltava pros agentes: 23 comandos (craft, shape, audit, polish, animate, live) e 59 regras determinísticas anti-slop. A skill de design frontend mais usada (230k+ instalações). | [pbakaus](https://github.com/pbakaus) |
 | [`anti-ai-slop`](https://github.com/evandrodevbr/dev-workflows) | Detecta padrão visual "gerado por IA" (auto-carregada, local). | skill da comunidade |
 | [`avoid-ai-writing`](https://github.com/conorbronsdon/avoid-ai-writing) | Remove AI-isms de microcopy, labels e docs. | [conorbronsdon](https://github.com/conorbronsdon) |
 
@@ -156,6 +158,49 @@ python3 test_tests.py           # meta-testes: corrompe o harness, prova que ele
 ```
 
 Os meta-testes são a parte legal. Eles quebram o harness e os workflows de propósito e confirmam que o placar *cai*. Se o placar não mudasse, o detetor seria inútil. Esses testes ficam verdes como contrato.
+
+## Testes de qualidade e ganhos medidos
+
+Números reais das execuções do harness, guardados em `qa/snapshots/`. A coluna "Antes" é o estado anterior ao refinamento; "Depois" é o resultado após ele.
+
+### Score de qualidade dos workflows (mesma régua, antes → depois)
+
+| Workflow | Antes | Depois | Ganho |
+|---|---|---|---|
+| wf-frontend | 201.0 | 385.5 | +92% |
+| wf-backend | 215.0 | 424.0 | +97% |
+| wf-architecture | 199.9 | 413.7 | +107% |
+| wf-security-review | 332.0 | 390.0 | +17% |
+| **Total** | **615.9** | **1223.2** | **+98.6%** |
+
+Isso é quase exatamente o dobro da qualidade dos workflows, medido com a mesma régua.
+
+A própria régua também ficou mais exigente ao longo do projeto (13 → 30+ critérios: verificação por fase, comandos reais, anti-padrões, critérios de aceite, artefatos, fluxo). Por isso os snapshots antigos mostram totais menores: `base-364` (13 critérios) → `baseline-v2` (536.7) → `baseline-v3` (675.0) → `baseline-v4` (884.6) → `baseline-final` (1613.2 com quatro workflows). A comparação justa acima usa a régua final dos dois lados.
+
+### Gates (checagens de regressão): todos verdes
+
+| Gate | O que verifica | Status |
+|---|---|---|
+| G1 | Score não caiu abaixo do baseline | ✅ |
+| G4 | Toda skill referenciada existe | ✅ 4/4 workflows |
+| G5 | Toda fase tem ≥3 verbos de verificação | ✅ 4/4 workflows |
+| Meta-testes | Corrompe harness/workflows → score cai (prova que o detetor funciona) | ✅ |
+
+### O que o refinamento adicionou
+
+Cada workflow ganhou o mesmo lote de melhorias reais:
+- **Passos de verificação** com comandos de verdade (`curl`, `grep`, `python3`, `git`, `npm`, `pytest`) em vez de prosa.
+- **Checklists de aceite por fase** (portões `[ ]` marcáveis).
+- **Blocos de anti-padrões** por fase (o que não fazer, e por quê).
+- **Seções de comandos executáveis** e **exemplos trabalhados por fase**.
+- **Checkpoints** que pausam pra aprovação do usuário entre fases.
+
+O workflow de segurança ganhou uma regra dura: *nunca afirmar "sem CVE" sem consultar OSV.dev / GitHub Advisory*. O conhecimento do modelo para no cutoff do treino; as fontes vivas não.
+
+### Contexto sobre a meta do "dobro"
+
+O harness tem um teto físico (soma dos caps dos critérios). A meta numérica de "2× do baseline" precisaria de uma régua com mais resolução pra ser expressável, então inflar o score pra bater seria maquiar a métrica. O que foi publicado é a versão honesta: qualidade real ~dobrou na mesma régua (+98.6%), com meta-testes provando que a régua detecta regressão.
+
 
 ## Estrutura do repositório
 

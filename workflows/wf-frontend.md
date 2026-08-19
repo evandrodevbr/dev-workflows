@@ -31,7 +31,9 @@ Sempre que a tarefa envolver interface do usuário ou GERAÇÃO DE PDF:
 ## Skills do stack (carregar conforme a fase)
 
 - Direção visual / anti-AI-slop: `frontend-design` (Anthropic), `web-design`,
-  e locais `frontend-award-tier`, `claude-design`, `popular-web-designs`,
+  `impeccable` (pbakaus — 23 comandos de design: craft/shape/audit/polish/
+  animate/live; 59 regras determinísticas anti-slop), e locais
+  `frontend-award-tier`, `claude-design`, `popular-web-designs`,
   `anti-ai-slop`
 - React/Next performance + composição: `vercel-react-best-practices`,
   `vercel-composition-patterns`
