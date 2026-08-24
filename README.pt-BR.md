@@ -72,6 +72,8 @@ Os workflows carregam essas skills por contexto. Os três pilares do security re
 
 ### 🛡️ Security review: os três pilares
 
+_Vendorizadas em `skills/` — ver [`skills/NOTICE.md`](skills/NOTICE.md) pra origem exata e licença._
+
 | Skill | O que faz | Dono |
 |---|---|---|
 | [`safedeps`](https://github.com/Jeneidi/safedeps) | Consulta o OSV.dev em tempo real; devolve CVE + severidade + versão corrigida pra um `package@version`. Cobre o buraco que um modelo congelado não cobre. | [Jeneidi](https://github.com/Jeneidi) |
@@ -79,6 +81,8 @@ Os workflows carregam essas skills por contexto. Os três pilares do security re
 | [`code-review-security`](https://github.com/OWASP/secure-agent-playbook) | Code review de segurança sistemático mapeado a OWASP Top 10 + ASVS. | [OWASP](https://github.com/OWASP) |
 
 ### 🛡️ Security review: skills de apoio
+
+_Também vendorizadas em `skills/`._
 
 | Skill | O que faz | Dono |
 |---|---|---|
@@ -133,13 +137,18 @@ Os workflows carregam essas skills por contexto. Os três pilares do security re
 # Hermes Agent:
 cp workflows/*.md ~/.hermes/skills/software-development/
 
-# Claude Code / qualquer agente com diretório de skills:
-mkdir -p ~/.claude/skills && cp workflows/*.md ~/.claude/skills/
+# Claude Code: cada skill no seu proprio diretorio (nao aceita .md solto)
+mkdir -p ~/.claude/skills
+for f in workflows/*.md; do
+  nome=$(basename "$f" .md)
+  mkdir -p "$HOME/.claude/skills/$nome"
+  cp "$f" "$HOME/.claude/skills/$nome/SKILL.md"
+done
 
-# 2. (Opcional, pro security review) instale o safedeps + o checker OSV
-git clone --depth 1 https://github.com/Jeneidi/safedeps.git
-cp -r safedeps/skills/safedeps ~/.hermes/skills/safedeps
-cp safedeps/check_deps.py ~/.hermes/skills/safedeps/
+# 2. (Opcional, pro security review) as skills de apoio ja vem vendorizadas
+# em skills/ -- sem clone externo, so copiar (Hermes; pra Claude Code use o
+# mesmo loop do passo 1 trocando "workflows" por "skills"):
+cp -r skills/* ~/.hermes/skills/
 
 # 3. Use
 # "review this PR for security"  -> wf-security-review carrega

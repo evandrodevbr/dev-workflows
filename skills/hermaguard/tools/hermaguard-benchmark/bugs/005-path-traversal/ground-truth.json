@@ -1,0 +1,9 @@
+{
+  "title": "Path traversal in file download",
+  "description": "User-supplied filename is joined without validation; ../ sequences escape the intended directory.",
+  "severity": "HIGH",
+  "category": "security",
+  "findings": [
+    {"file": "app.py", "trigger": "filename joined into path without traversal check", "description": "Arbitrary file read via ../ traversal", "severity": "HIGH", "classes": ["CWE-22"]}
+  ]
+}

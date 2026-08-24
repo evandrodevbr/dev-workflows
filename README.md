@@ -72,6 +72,8 @@ Workflows load these skills by context. The three pillars of the security review
 
 ### 🛡️ Security review: the three pillars
 
+_Vendored under `skills/` — see [`skills/NOTICE.md`](skills/NOTICE.md) for exact origin and license._
+
 | Skill | What it does | Owner |
 |---|---|---|
 | [`safedeps`](https://github.com/Jeneidi/safedeps) | Queries OSV.dev in real time; returns CVE + severity + fixed version for a `package@version`. Covers the gap a frozen model can't. | [Jeneidi](https://github.com/Jeneidi) |
@@ -79,6 +81,8 @@ Workflows load these skills by context. The three pillars of the security review
 | [`code-review-security`](https://github.com/OWASP/secure-agent-playbook) | Systematic security code review mapped to OWASP Top 10 + ASVS. | [OWASP](https://github.com/OWASP) |
 
 ### 🛡️ Security review: supporting skills
+
+_Also vendored under `skills/`._
 
 | Skill | What it does | Owner |
 |---|---|---|
@@ -133,13 +137,18 @@ Workflows load these skills by context. The three pillars of the security review
 # Hermes Agent:
 cp workflows/*.md ~/.hermes/skills/software-development/
 
-# Claude Code / any skills-dir agent:
-mkdir -p ~/.claude/skills && cp workflows/*.md ~/.claude/skills/
+# Claude Code: each skill needs its own directory (won't load a loose .md)
+mkdir -p ~/.claude/skills
+for f in workflows/*.md; do
+  name=$(basename "$f" .md)
+  mkdir -p "$HOME/.claude/skills/$name"
+  cp "$f" "$HOME/.claude/skills/$name/SKILL.md"
+done
 
-# 2. (Optional, for security review) install safedeps + the OSV checker
-git clone --depth 1 https://github.com/Jeneidi/safedeps.git
-cp -r safedeps/skills/safedeps ~/.hermes/skills/safedeps
-cp safedeps/check_deps.py ~/.hermes/skills/safedeps/
+# 2. (Optional, for security review) the supporting skills are already
+# vendored in skills/ -- no external clone needed, just copy (Hermes; for
+# Claude Code use the same loop as step 1, swapping "workflows" for "skills"):
+cp -r skills/* ~/.hermes/skills/
 
 # 3. Use it
 # "review this PR for security"  -> wf-security-review loads

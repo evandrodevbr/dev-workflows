@@ -1,7 +1,9 @@
 # Skills usadas e de onde vieram
 
 Este é o inventário do que os workflows carregam. Cada skill é um diretório
-com um `SKILL.md`; para o Hermes Agent, vão em `~/.hermes/skills/`.
+com um `SKILL.md`; para o Hermes Agent, vão em `~/.hermes/skills/`; para
+Claude Code, em `~/.claude/skills/<nome>/SKILL.md` (subdiretório por skill —
+Claude Code não carrega arquivo `.md` solto, precisa do diretório).
 
 ## Workflows orquestradores (em `workflows/`)
 
@@ -22,6 +24,10 @@ com um `SKILL.md`; para o Hermes Agent, vão em `~/.hermes/skills/`.
 | `curating-readme` | [liang-senbei/curating-readme](https://github.com/liang-senbei/curating-readme) | Padroniza README + docs (CONTRIBUTING/CHANGELOG) com `audit-repo.sh` |
 
 ## Pilar de segurança (wf-security-review)
+
+**Vendorizadas neste repo** em `skills/<nome>/` — ver `skills/NOTICE.md` pra
+origem exata (commit + licença) de cada uma. Não precisa clonar nada externo
+pra este pilar.
 
 | Skill | Origem | O que faz |
 |---|---|---|
@@ -77,30 +83,29 @@ com um `SKILL.md`; para o Hermes Agent, vão em `~/.hermes/skills/`.
 
 ## Como instalar as skills de origem
 
-A maioria instala via `npx skills` (formato agentskills.io):
+**Pilar de segurança:** já vem vendorizado em `skills/` neste repo — sem
+clone externo. Copie direto:
+
+```bash
+# Hermes Agent:
+cp -r skills/* ~/.hermes/skills/
+
+# Claude Code (cada skill no seu próprio diretório):
+mkdir -p ~/.claude/skills
+for d in skills/*/; do
+  nome=$(basename "$d")
+  [ "$nome" = "NOTICE.md" ] && continue
+  mkdir -p "~/.claude/skills/$nome"
+  cp -r "$d." "~/.claude/skills/$nome/"
+done
+```
+
+**Frontend/backend/arquitetura** (ainda não vendorizadas, instalam de fora):
+a maioria via `npx skills` (formato agentskills.io):
 
 ```bash
 npx skills add anthropics/skills --skill frontend-design
 npx skills add vercel-labs/agent-skills --skill vercel-react-best-practices
 npx skills add conorbronsdon/avoid-ai-writing
 npx skills add https://github.com/pbakaus/impeccable --skill impeccable
-```
-
-As de segurança do OWASP e UnitOne instalam clonando e copiando o diretório
-da skill:
-
-```bash
-git clone --depth 1 https://github.com/OWASP/secure-agent-playbook.git
-cp -r secure-agent-playbook/plugins/code-security-skills/skills/{sca-audit,secrets-scan} ~/.hermes/skills/
-
-git clone --depth 1 https://github.com/UnitOneAI/SecuritySkills.git
-cp -r SecuritySkills/skills/vuln-management/{cve-triage,patch-prioritization} ~/.hermes/skills/
-```
-
-O safedeps precisa do script junto da skill:
-
-```bash
-git clone --depth 1 https://github.com/Jeneidi/safedeps.git
-cp -r safedeps/skills/safedeps ~/.hermes/skills/safedeps
-cp safedeps/check_deps.py ~/.hermes/skills/safedeps/
 ```
