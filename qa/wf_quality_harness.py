@@ -16,13 +16,36 @@ Uso: python3 wf_quality_harness.py [--json]
 """
 import json, os, re, sys
 
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKILLS_DIR = os.path.expanduser("~/.hermes/skills")
+VENDORED_SKILLS_DIR = os.path.join(REPO_ROOT, "skills")
+
 WORKFLOWS = {
     "wf-frontend": "software-development/wf-frontend/SKILL.md",
     "wf-backend": "software-development/wf-backend/SKILL.md",
     "wf-architecture": "software-development/wf-architecture/SKILL.md",
     "wf-security-review": "software-development/wf-security-review/SKILL.md",
 }
+
+# Teto real do harness por workflow (não é 100): soma dos caps dos critérios
+# estáticos, mais 20 por fase (por_fase_verif/cmd/antip/aceite) e 16 por fase
+# (faseN = 8 passos + 6 verbos + 2 de verificação real).
+STATIC_CAP = 288
+PER_FASE_CAP = 36
+
+def resolve_workflow(name, relpath):
+    """Resolve o SKILL.md do workflow: clone do repo primeiro, instalado depois.
+
+    O harness é documentado pra rodar a partir do clone (`cd qa`), onde os
+    workflows estão em `workflows/<nome>.md`. Cópias instaladas ficam em
+    ~/.hermes/skills/software-development/<nome>/SKILL.md.
+    """
+    for cand in (os.path.join(REPO_ROOT, "workflows", name + ".md"),
+                 os.path.join(SKILLS_DIR, relpath),
+                 os.path.join(SKILLS_DIR, name, "SKILL.md")):
+        if os.path.exists(cand):
+            return cand
+    return None
 
 VERB_VERIFY = ["rodar", "verificar", "verifica", "testar", "build", "lint",
                "typecheck", "check", "audit", "validate", "validar", "coverage",
@@ -34,36 +57,40 @@ AI_SLOP_WORDS = ["robust", "seamless", "leverage", "delve", "game-changer",
                  "unlock", "elevate", "empower", "foster", "robustamente"]
 
 def checks_exist(path):
-    """Existe um dos caminhos possíveis da skill (categoria ou raiz)."""
-    for base in (SKILLS_DIR,):
-        if os.path.exists(os.path.join(base, path, "SKILL.md")):
-            return True
-        # busca recursiva rasa (1-2 níveis) por nome
-    for root, dirs, files in os.walk(SKILLS_DIR):
-        if root.count(os.sep) - SKILLS_DIR.count(os.sep) > 2:
-            continue
-        if any(f == "SKILL.md" for f in files):
-            dname = os.path.basename(root)
-            if dname == path:
-                return True
+    """Existe um dos caminhos possíveis da skill (vendorizada no repo ou instalada)."""
+    if os.path.exists(os.path.join(VENDORED_SKILLS_DIR, path, "SKILL.md")):
+        return True
+    if os.path.exists(os.path.join(SKILLS_DIR, path, "SKILL.md")):
+        return True
+    # busca recursiva rasa (1-2 níveis) por nome
+    for base in (VENDORED_SKILLS_DIR, SKILLS_DIR):
+        for root, dirs, files in os.walk(base):
+            if root.count(os.sep) - base.count(os.sep) > 2:
+                continue
+            if any(f == "SKILL.md" for f in files):
+                dname = os.path.basename(root)
+                if dname == path:
+                    return True
     return False
 
 def find_skill_path(name):
-    for base in (SKILLS_DIR,):
+    for base in (VENDORED_SKILLS_DIR, SKILLS_DIR):
         p = os.path.join(base, name, "SKILL.md")
         if os.path.exists(p):
             return p
-    for root, dirs, files in os.walk(SKILLS_DIR):
-        if root.count(os.sep) - SKILLS_DIR.count(os.sep) > 2:
-            continue
-        if "SKILL.md" in files and os.path.basename(root) == name:
-            return os.path.join(root, "SKILL.md")
+        for root, dirs, files in os.walk(base):
+            if root.count(os.sep) - base.count(os.sep) > 2:
+                continue
+            if "SKILL.md" in files and os.path.basename(root) == name:
+                return os.path.join(root, "SKILL.md")
     return None
 
 def score_workflow(name, relpath):
-    path = os.path.join(SKILLS_DIR, relpath)
-    if not os.path.exists(path):
-        return {"name": name, "error": f"SKILL.md não encontrado: {path}", "score": 0}
+    path = resolve_workflow(name, relpath)
+    if path is None:
+        return {"name": name,
+                "error": f"SKILL.md não encontrado: nem {os.path.join(REPO_ROOT, 'workflows', name + '.md')} nem {os.path.join(SKILLS_DIR, relpath)}",
+                "score": 0, "max": 0}
     text = open(path, encoding="utf-8").read()
     lower = text.lower()
     result = {"name": name, "score": 0}
@@ -221,7 +248,8 @@ def score_workflow(name, relpath):
     crit["entradas_saidas"] = 8 if re.search(r"checkpoint|entrada|saída|saida|handoff|interface.", text, re.I) else 0
 
     total = sum(v for k, v in crit.items() if isinstance(v, (int, float)))
-    result.update({"criteria": crit, "score": round(total, 1)})
+    result.update({"criteria": crit, "score": round(total, 1),
+                   "max": STATIC_CAP + PER_FASE_CAP * len(fases)})
     return result
 
 def main():
@@ -231,7 +259,7 @@ def main():
         res = score_workflow(name, relpath)
         out["workflows"].append(res)
         out["total"] += res.get("score", 0)
-        out["max"] += 100
+        out["max"] += res.get("max", 0)
         if res.get("skills_sem_match"):
             all_ok = False
     if "--json" in sys.argv:
@@ -240,7 +268,8 @@ def main():
         for w in out["workflows"]:
             print(f"{w['name']:18} score={w.get('score',0):>6}  refs={len(w.get('skills_referenciadas',[]))} "
                   f"sem_match={w.get('skills_sem_match',[])} fases_sem_verif={w.get('fases_sem_verificacao',[])}")
-        print(f"\nTOTAL: {out['total']:.1f} / {out['max']:.1f}  ({out['total']/out['max']*100:.1f}%)")
+        pct = (out["total"] / out["max"] * 100) if out["max"] else 0.0
+        print(f"\nTOTAL: {out['total']:.1f} / {out['max']:.1f}  ({pct:.1f}% do teto)")
     sys.exit(0 if all_ok else 1)
 
 if __name__ == "__main__":
