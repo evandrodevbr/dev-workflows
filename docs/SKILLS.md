@@ -1,9 +1,10 @@
 # Skills usadas e de onde vieram
 
 Este é o inventário do que os workflows carregam. Cada skill é um diretório
-com um `SKILL.md`; para o Hermes Agent, vão em `~/.hermes/skills/`; para
-Claude Code, em `~/.claude/skills/<nome>/SKILL.md` (subdiretório por skill —
-Claude Code não carrega arquivo `.md` solto, precisa do diretório).
+com um `SKILL.md` dentro, e esse diretório é obrigatório nos dois agentes
+(a skill é `<nome>/SKILL.md`, nunca um `.md` solto, que não é indexado):
+no Hermes Agent, em `~/.hermes/skills/<nome>/SKILL.md`; no Claude Code, em
+`~/.claude/skills/<nome>/SKILL.md`.
 
 ## Workflows orquestradores (em `workflows/`)
 
@@ -91,14 +92,15 @@ clone externo. Copie direto:
 cp -r skills/* ~/.hermes/skills/
 
 # Claude Code (cada skill no seu próprio diretório):
-mkdir -p ~/.claude/skills
+mkdir -p "$HOME/.claude/skills"
 for d in skills/*/; do
-  nome=$(basename "$d")
-  [ "$nome" = "NOTICE.md" ] && continue
-  mkdir -p "~/.claude/skills/$nome"
-  cp -r "$d." "~/.claude/skills/$nome/"
+  cp -r "$d" "$HOME/.claude/skills/"
 done
 ```
+
+Os arquivos de apoio que cada skill referencia (`plays/`, `templates/`,
+`schemas/`, `docs/`) ficam dentro do diretório da própria skill, então o
+`cp -r` os leva junto. Origem e licença de cada um: `skills/NOTICE.md`.
 
 **Frontend/backend/arquitetura** (ainda não vendorizadas, instalam de fora):
 a maioria via `npx skills` (formato agentskills.io):

@@ -119,6 +119,8 @@ _Also vendored under `skills/`._
 | [`api-security-review`](https://github.com/apisec-inc/apisec-skills) | Full OWASP API Top 10 review. | [apisec-inc](https://github.com/apisec-inc) |
 | [`security-test-generator`](https://github.com/apisec-inc/apisec-skills) | Generates security test suites. | [apisec-inc](https://github.com/apisec-inc) |
 
+> ⚠️ `api-security-review` is two unrelated skills sharing one name: the OWASP one vendored in `skills/` (security pillar, above) and the apisec-inc one in this table. Only the OWASP copy ships in this repository. Install the one your workflow needs — with both present, agents that resolve by skill name report a collision.
+
 ### 🏗️ Architecture
 
 | Skill | What it does | Owner |
@@ -133,27 +135,30 @@ _Also vendored under `skills/`._
 ## Quick start
 
 ```bash
-# 1. Copy workflows into your agent's skills directory
-# Hermes Agent:
-cp workflows/*.md ~/.hermes/skills/software-development/
+# 1. Copy the workflows into your agent's skills directory.
+# Each skill needs its own directory containing a SKILL.md -- a loose .md
+# file sitting in a category folder is not indexed (neither Hermes nor
+# Claude Code loads it), so the loop below builds the right shape.
+SKILLS_DIR="$HOME/.hermes/skills/software-development"
+# Claude Code: SKILLS_DIR="$HOME/.claude/skills"
 
-# Claude Code: each skill needs its own directory (won't load a loose .md)
-mkdir -p ~/.claude/skills
 for f in workflows/*.md; do
   name=$(basename "$f" .md)
-  mkdir -p "$HOME/.claude/skills/$name"
-  cp "$f" "$HOME/.claude/skills/$name/SKILL.md"
+  mkdir -p "$SKILLS_DIR/$name"
+  cp "$f" "$SKILLS_DIR/$name/SKILL.md"
 done
 
 # 2. (Optional, for security review) the supporting skills are already
-# vendored in skills/ -- no external clone needed, just copy (Hermes; for
-# Claude Code use the same loop as step 1, swapping "workflows" for "skills"):
-cp -r skills/* ~/.hermes/skills/
+# vendored in skills/ -- no external clone needed, just copy:
+cp -r skills/* "$HOME/.hermes/skills/"
 
 # 3. Use it
 # "review this PR for security"  -> wf-security-review loads
 # "build a new page"              -> wf-frontend loads
 ```
+
+Verify the install took: the workflows should show up in your agent's skill
+list (`hermes skills list` for Hermes Agent).
 
 ## The QA harness
 
@@ -171,7 +176,7 @@ The meta-tests are the interesting part. They deliberately break the harness and
 
 ## Quality tests and measured gains
 
-These are real numbers from the harness runs, stored in `qa/snapshots/`. The baseline column is the state before the refinement work; the final column is the result after it.
+These are real numbers from the harness runs, stored in `qa/snapshots/baseline-final.json`. The baseline column is the state before the refinement work; the final column is the result after it.
 
 ### Workflow quality score (same harness, before → after)
 
@@ -185,7 +190,7 @@ These are real numbers from the harness runs, stored in `qa/snapshots/`. The bas
 
 That is almost exactly double the quality of the workflows, measured with the same ruler.
 
-The ruler itself also grew stricter over the project (13 → 30+ criteria: verification per phase, real commands, anti-patterns, acceptance criteria, artifacts, flow). That is why the early snapshots show lower totals: `base-364` (13 criteria) → `baseline-v2` (536.7) → `baseline-v3` (675.0) → `baseline-v4` (884.6) → `baseline-final` (1613.2 with four workflows). The fair before/after comparison above uses the final ruler for both sides.
+The ruler itself also grew stricter over the project (13 → 30+ criteria: verification per phase, real commands, anti-patterns, acceptance criteria, artifacts, flow). That is why the early runs show lower totals: `base-364` (13 criteria) → `baseline-v2` (536.7) → `baseline-v3` (675.0) → `baseline-v4` (884.6) → `baseline-final` (1613.2 across the four scored workflows). Only the final snapshot is committed, as `qa/snapshots/baseline-final.json` — that is the file the gates read and the file to update when scoring changes. The fair before/after comparison above uses the final ruler for both sides.
 
 ### Gates (regression checks): all green
 
@@ -218,11 +223,23 @@ The harness has a physical ceiling (sum of all criterion caps). The numeric "2×
 dev-workflows/
 ├── README.md            # this file
 ├── README.pt-BR.md      # Portuguese version
-├── workflows/           # the four SKILL.md workflows
+├── workflows/           # the five SKILL.md workflows
 │   ├── wf-frontend.md
 │   ├── wf-backend.md
 │   ├── wf-architecture.md
-│   └── wf-security-review.md
+│   ├── wf-security-review.md
+│   └── wf-readme.md
+├── skills/              # the security pillar, vendored (see skills/NOTICE.md)
+│   ├── safedeps/        #   + plays/, templates/, schemas/, docs/ support files
+│   ├── sca-audit/
+│   ├── code-review-security/
+│   ├── api-security-review/
+│   ├── web-security-review/
+│   ├── secrets-scan/
+│   ├── cve-triage/
+│   ├── patch-prioritization/
+│   ├── dependency-scanning/
+│   └── hermaguard/
 ├── docs/
 │   └── SKILLS.md        # full skill inventory + install steps
 ├── CONTRIBUTING.md      # what to improve, local checks, PR process
@@ -230,7 +247,9 @@ dev-workflows/
     ├── wf_quality_harness.py
     ├── test_quality.py
     ├── test_tests.py
+    ├── baseline.json
     └── snapshots/
+        └── baseline-final.json
 ```
 
 ## License
