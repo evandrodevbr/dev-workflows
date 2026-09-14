@@ -23,12 +23,12 @@ one, run the checker and use its real output instead of your own
 recollection of which versions are safe.
 
 ```bash
-python3 <skill_dir>/../../check_deps.py <package>@<version>:<ecosystem>
-python3 <skill_dir>/../../check_deps.py path/to/requirements.txt
+python3 <skill_dir>/check_deps.py <package>@<version>:<ecosystem>
+python3 <skill_dir>/check_deps.py path/to/requirements.txt
 ```
 
-(`<skill_dir>` is this file's directory; the script lives at the repo/plugin
-root as `check_deps.py`. Ecosystems: `npm`, `PyPI`, `Go`, `crates.io`,
+(`<skill_dir>` is this file's directory; the script is vendored next to this
+file, as `check_deps.py`. Ecosystems: `npm`, `PyPI`, `Go`, `crates.io`,
 `Maven`, etc. -- omit `:ecosystem` and it defaults to `npm`.)
 
 The script prints one of two things per package, straight from OSV.dev:
@@ -41,6 +41,11 @@ VULN  npm:lodash@4.17.21 -- 2 advisory(ies):
 ```
 
 ## What to do with the output
+
+Exit code is `0` when every package is clean, `1` when at least one advisory
+was found, and `2` when OSV.dev was unreachable -- `1` is a finding, not a
+crash. (The manifest mode only accepts files named `requirements.txt`,
+`package.json`, `package-lock.json` or `go.mod`.)
 
 1. If a package you're about to add/bump shows `VULN`, do not use that
    version. Use the version named in `fix:` instead (or newer).

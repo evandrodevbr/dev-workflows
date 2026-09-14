@@ -183,7 +183,7 @@ Typosquatting (also called dependency confusion or combosquatting) is a supply c
 
 ## Assessment Output Template
 
-Before applying or proposing dependency changes, classify each remediation path using [Security Fixer Policy](../../../docs/fixer-policy.md). Include the policy review gate, reviewer evidence, and rollback guidance in the remediation plan.
+Before applying or proposing dependency changes, classify each remediation path using [Security Fixer Policy](docs/fixer-policy.md). Include the policy review gate, reviewer evidence, and rollback guidance in the remediation plan.
 
 When performing a dependency scan, produce findings in the following structure:
 
@@ -236,8 +236,8 @@ When performing a dependency scan, produce findings in the following structure:
 - **Blind spots:** This skill depends on available code, configuration, logs, documentation, and user-provided context; it cannot prove controls exist or threats are absent when evidence is missing, runtime-only, or outside the review scope.
 - **False-positive risks:** Treat findings as hypotheses until validated against asset criticality, compensating controls, environment intent, and recent authorized changes.
 - **Required evidence:** Support each finding with concrete artifacts such as file paths and line numbers, policy snippets, scanner output, logs, screenshots, control records, or reproducible steps.
-- **Normalized JSON:** When machine-readable output is requested, findings MUST be available as JSON that validates against [`schemas/finding.schema.json`](../../../schemas/finding.schema.json).
-- **SARIF JSON:** When SARIF output is requested, map normalized findings to SARIF 2.1.0-compatible JSON using [`docs/sarif-output.md`](../../../docs/sarif-output.md).
+- **Normalized JSON:** When machine-readable output is requested, findings MUST be available as JSON that validates against [`schemas/finding.schema.json`](schemas/finding.schema.json).
+- **SARIF JSON:** When SARIF output is requested, map normalized findings to SARIF 2.1.0-compatible JSON using [`docs/sarif-output.md`](docs/sarif-output.md).
 - **Escalation rules:** Escalate immediately for suspected active compromise, exposed secrets, regulated-data exposure, critical exploitable vulnerabilities, privileged-access abuse, or when evidence is insufficient to safely disposition a high-impact risk.
 
 ---
