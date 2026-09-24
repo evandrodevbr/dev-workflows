@@ -52,6 +52,8 @@ pra este pilar.
 | `vercel-composition-patterns` | vercel-labs/agent-skills | Compound components, composição |
 | `animate` | [emilkowalski/skill](https://github.com/emilkowalski/skill) | Motion com propósito |
 | `impeccable` | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | Vocabulário de design: 23 comandos + 59 regras determinísticas anti-slop |
+| `design-taste-frontend` | [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill) (vendorizada em `skills/`) | Gera UI nova sem cara de template; 3 controles de variância, motion e densidade |
+| `redesign-existing-projects` | Leonxlnx/taste-skill (vendorizada em `skills/`) | Audita UI existente e melhora sem quebrar funcionalidade |
 | `anti-ai-slop` | local | Detecta padrão visual "gerado por IA" |
 | `avoid-ai-writing` | [conorbronsdon/avoid-ai-writing](https://github.com/conorbronsdon/avoid-ai-writing) | Remove AI-isms de texto/microcopy |
 

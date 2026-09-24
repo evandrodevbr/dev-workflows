@@ -21,6 +21,13 @@ repo de origem, ou comparar datas).
 | `patch-prioritization` | UnitOneAI/SecuritySkills | `70bc259` (2026-06-18) | MIT |
 | `dependency-scanning` | UnitOneAI/SecuritySkills | `70bc259` (2026-06-18) | MIT |
 | `hermaguard` | [Sahil-SS9/hermaguard](https://github.com/Sahil-SS9/hermaguard) | `b491fbe` (2026-08-15) | MIT |
+| `design-taste-frontend` | [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill) `skills/taste-skill/` | `c184364` (2026-09-23) | MIT |
+| `redesign-existing-projects` | Leonxlnx/taste-skill `skills/redesign-skill/` | `c184364` (2026-09-23) | MIT |
+
+As duas skills do taste-skill são usadas pelo `wf-frontend`. O `LICENSE` do
+upstream vai dentro de cada diretório, porque a MIT exige que o aviso de
+copyright acompanhe a cópia. `design-taste-frontend` tem ~87 KB (~22 mil
+tokens): carregue só para UI nova, não para ajuste pontual.
 
 Licença CC-BY-4.0 (OWASP/secure-agent-playbook) exige atribuição — mantida
 via a tabela acima e o link direto ao repo original em cada menção nos

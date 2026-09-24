@@ -104,6 +104,8 @@ _Também vendorizadas em `skills/`._
 | [`vercel-composition-patterns`](https://github.com/vercel-labs/agent-skills) | Compound components, composição limpa. | [Vercel Labs](https://github.com/vercel-labs) |
 | [`animate`](https://github.com/emilkowalski/skill) | Motion com propósito. | [emilkowalski](https://github.com/emilkowalski) |
 | [`impeccable`](https://github.com/pbakaus/impeccable) | O vocabulário de design que faltava pros agentes: 23 comandos (craft, shape, audit, polish, animate, live) e 59 regras determinísticas anti-slop. A skill de design frontend mais usada (230k+ instalações). | [pbakaus](https://github.com/pbakaus) |
+| [`design-taste-frontend`](https://github.com/Leonxlnx/taste-skill) | Gera UI nova com direção inferida do brief; três controles de 1 a 10 (variância, motion, densidade). Vendorizada em `skills/`. | [Leonxlnx](https://github.com/Leonxlnx) |
+| [`redesign-existing-projects`](https://github.com/Leonxlnx/taste-skill) | Audita uma UI existente e melhora sem quebrar o comportamento. Vendorizada em `skills/`. | [Leonxlnx](https://github.com/Leonxlnx) |
 | [`anti-ai-slop`](https://github.com/evandrodevbr/dev-workflows) | Detecta padrão visual "gerado por IA" (auto-carregada, local). | skill da comunidade |
 | [`avoid-ai-writing`](https://github.com/conorbronsdon/avoid-ai-writing) | Remove AI-isms de microcopy, labels e docs. | [conorbronsdon](https://github.com/conorbronsdon) |
 
@@ -239,7 +241,9 @@ dev-workflows/
 │   ├── cve-triage/
 │   ├── patch-prioritization/
 │   ├── dependency-scanning/
-│   └── hermaguard/
+│   ├── hermaguard/
+│   ├── design-taste-frontend/      # taste-skill (frontend)
+│   └── redesign-existing-projects/ # taste-skill (frontend)
 ├── docs/
 │   └── SKILLS.md        # inventário completo de skills + instalação
 ├── CONTRIBUTING.md      # o que melhorar, checks locais, processo de PR

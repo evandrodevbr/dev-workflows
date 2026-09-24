@@ -32,7 +32,11 @@ Sempre que a tarefa envolver interface do usuário ou GERAÇÃO DE PDF:
 
 - Direção visual / anti-AI-slop: `frontend-design` (Anthropic), `web-design`,
   `impeccable` (pbakaus — 23 comandos de design: craft/shape/audit/polish/
-  animate/live; 59 regras determinísticas anti-slop), e locais
+  animate/live; 59 regras determinísticas anti-slop),
+  `design-taste-frontend` (taste-skill: gera UI nova com direção inferida do
+  brief; 3 controles DESIGN_VARIANCE/MOTION_INTENSITY/VISUAL_DENSITY; ~22k
+  tokens, só para tela nova), `redesign-existing-projects` (taste-skill:
+  audita UI existente e sobe o nível sem quebrar funcionalidade), e locais
   `frontend-award-tier`, `claude-design`, `popular-web-designs`,
   `anti-ai-slop`
 - React/Next performance + composição: `vercel-react-best-practices`,
@@ -49,6 +53,8 @@ Sempre que a tarefa envolver interface do usuário ou GERAÇÃO DE PDF:
 ## Fase 1 — DESIGN (decidir antes de codar)
 
 1. Carregar `frontend-design` + `frontend-award-tier` + `anti-ai-slop`.
+   Tela nova: somar `design-taste-frontend`. Re-design de tela que já
+   existe: `redesign-existing-projects` (audita antes de mudar).
 2. Definir direção visual explícita: paleta, tipografia, espaçamento,
    densidade, dark/light — NUNCA gerar "default AI slop".
 3. Se for re-design/variação: `claude-design`/`popular-web-designs` para
