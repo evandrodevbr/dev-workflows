@@ -1,6 +1,11 @@
 ---
 name: wf-bugfix
 description: Use para corrigir bug, erro, exceção, falha, regressão, comportamento errado ("não funciona", "quebrou", "fix"). Reproduz, acha a causa raiz e prova a correção com um teste de regressão que falha antes e passa depois.
+license: MIT
+metadata:
+  dev-workflows:
+    uses: []
+    external: []
 ---
 
 # Workflow Bugfix

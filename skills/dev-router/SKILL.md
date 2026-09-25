@@ -1,6 +1,11 @@
 ---
 name: dev-router
 description: Use no início de qualquer pedido de código (feature, bug, refactor, UI, API, migração, review; "implement", "fix", "build", "add", "change"). Classifica o pedido em nível 0 a 3 e decide quais workflows, agentes e checagens rodar, para um pedido pequeno não pagar o custo de um grande.
+license: MIT
+metadata:
+  dev-workflows:
+    uses: [lean-code, wf-bugfix, wf-refactor, wf-frontend, wf-backend, wf-architecture, wf-security-review, safedeps]
+    external: []
 ---
 
 # Dev Router

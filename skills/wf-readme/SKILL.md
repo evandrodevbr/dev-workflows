@@ -1,225 +1,98 @@
 ---
 name: wf-readme
-description: "Criar/auditar/reescrever README grounded. Scan real do repo."
-version: 1.0.0
-author: Hermes Agent
+description: Use para criar, auditar, melhorar, reescrever ou padronizar o README (e docs vizinhos como CONTRIBUTING e CHANGELOG) de um repositório. Tudo que o README afirma vem de um fato real do repo e os comandos mostrados são executados antes da entrega. Não use para docstrings, comentários de código, documentação de API gerada ou textos de UI (esses ficam com wf-frontend).
 license: MIT
-platforms: [linux, macos, windows]
 metadata:
-  hermes:
-    tags: [readme, documentation, docs, markdown, workflow]
+  dev-workflows:
+    uses: []
+    external: [readme-crafter, good-readme, curating-readme, avoid-ai-writing]
 ---
 
-# Workflow README (criar, auditar, reescrever)
+# Workflow README
 
-Orquestrador obrigatório para qualquer trabalho de README (criar, melhorar,
-auditar, padronizar) em qualquer projeto. Princípio central: **grounded** —
-o README é construído a partir de fatos reais do repositório (manifest,
-código, scripts, config, git), nunca fabricado de memória.
+O README é construído a partir do repositório (manifest, código, scripts, config, git), nunca de
+memória. Fato sem fonte vira pergunta ao usuário.
 
-## When to Use
+## Escala pelo tamanho do pedido
 
-- "cria um README pra esse projeto" / "escreve a documentação"
-- "melhora esse README" / "audita a qualidade do README"
-- "padroniza a documentação do repo"
-- Qualquer pedido de documentação de projeto (README/LICENSE/docs)
+| Pedido | Fluxo |
+|---|---|
+| Ajuste pontual (corrigir um comando, um link, uma seção) | editar e rodar a Fase 5 só no trecho tocado |
+| README novo, reescrita ou padronização | Fases 1 a 5 |
 
-## Skills do stack
+## Skills (se instaladas)
 
-- `readme-crafter` (linhai0872) — classifica o projeto em 4 eixos (tipo,
-  distribuição, público, temperamento) e gera README sob medida; 13 checks
-  de verificação; modo collaborative/quick/surgical/audit.
-- `good-readme` (adewale) — cria do zero com exemplos reais de código OU
-  audita contra rubric de 22 critérios (escala 100); verifica exemplos
-  contra o código real.
-- `curating-readme` (liang-senbei) — padroniza README + docs relacionados
-  (CONTRIBUTING/CHANGELOG/SECURITY/docs) com scripts determinísticos
-  (`audit-repo.sh`) e estrutura canônica.
-- Locais: `project-readme-clarity` (auditoria de onboarding/ambiguidades),
-  `avoid-ai-writing` (remove AI-isms), `wf-frontend` (padrão visual de
-  docs/README bonitos).
+- `readme-crafter`: classifica o projeto e sugere estrutura sob medida.
+- `good-readme`: cria com exemplos reais ou audita contra uma rubrica de 22 critérios.
+- `curating-readme`: padroniza README e docs vizinhos; traz o script `audit-repo.sh`.
+- `avoid-ai-writing`: remove AI-isms do texto final.
 
-## Fase 1 — SCAN (coletar fatos reais)
+Sem elas, o fluxo abaixo funciona sozinho.
 
-1. Rodar o inventory determinístico do repo:
-   `bash ~/.hermes/skills/curating-readme/scripts/audit-repo.sh <repo>`
-   (ou o `scan-project.sh` do readme-crafter) — coleta manifest, entrypoints,
-   scripts, config, estrutura, env vars, git, linguagens.
-2. Ler manifest principal (package.json / pyproject.toml / go.mod / etc):
-   nome, descrição, versão, dependências, scripts.
-3. Identificar entrypoints: o que o projeto realmente faz (não o que diz).
-4. Ler README existente (se houver), CLI_AGENTS.md, LICENSE.
-5. VERIFICAR: marcar como **fato verificado** cada item com fonte no repo;
-   qualquer coisa sem fonte vira `TODO:`/pergunta — nunca inventar.
-6. VERIFICAR (comandos de scan): rodar `python3 -c "import json; json.load(open('package.json'))"`
-   (ou equivalente para o manifest) para provar que o manifest parseia;
-   e `git remote -v && git log --oneline -5` para capturar contexto real.
-7. VERIFICAR (inventário): conferir com `find . -maxdepth 1 -type f | wc -l`
-   a contagem real de arquivos e `du -sh .` para não documentar coisa que
-   não existe. TRÊS CHECKS: manifest válido, git real, inventário presente.
+## Fase 1: SCAN (fatos reais)
 
-**Checklist da fase 1:**
-- [ ] Inventory do repo rodado (audit-repo.sh / scan-project.sh)
-- [ ] Manifest lido e entendido
-- [ ] Fato × suposição separados (suposição vira TODO/pergunta)
+1. Leia o manifest (`package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`...): nome, descrição,
+   versão, scripts, `bin`, dependências.
+2. Ache os entrypoints e o que o projeto de fato faz (CLI, rotas, exports públicos).
+3. Leia o README atual, `LICENSE`, `CONTRIBUTING.md`, a CI (`.github/workflows/`) e `.env.example`.
+4. Capture o contexto: `git remote -v` e `git log --oneline -5`.
+5. Monte a lista de fatos, cada um com a fonte (`arquivo:linha` ou comando). O que não tem fonte vira pergunta.
 
-## Fase 2 — CLASSIFY (entender público e tipo)
+## Fase 2: CLASSIFY (tipo e público)
 
-1. `readme-crafter` — classificar o projeto:
-   - Tipo: library / CLI / web app / framework / API / agent-AI / monorepo / ...
-   - Distribuição: open-source público vs interno
-   - Público: avaliador / novo usuário / contribuidor / operador / agente IA
-   - Temperamento: developer utility / product / academic / community
-2. Decidir audiência PRIMÁRIA (o README serve a quem primeiro).
-3. VERIFICAR: registrar decisões de classificação (1 linha cada) — a
-   estrutura do README deriva delas.
-4. SE necessário, fazer perguntas do tipo "quem é o público?" ou "qual
-   o tom?" quando o código não revela a intenção (3-5 perguntas máx).
-5. VERIFICAR (comandos de classificação): para software com CLI, rodar
-   `python3 -m <pkg> --help` (ou `node bin/index.js --help`) para capturar
-   a sintaxe real de uso; para web app, listar `find src pages app -maxdepth 1 -type d 2>/dev/null` para ver as rotas reais.
-6. VERIFICAR (decisões): registrar as 4 classificações com fonte — "tipo=CLI
-   porque package.json.bin existe"; "público=developer porque docs de API".
+- Tipo: biblioteca, CLI, web app, API, framework, monorepo, agente.
+- Distribuição: público ou interno. Público primário: novo usuário, contribuidor, operador ou avaliador.
+- Cada decisão com a fonte ("CLI porque `package.json` tem `bin`").
+- Para CLI, rode o `--help` real e use essa saída como base da seção de uso.
+- Se o código não revela a intenção, até 3 perguntas ao usuário.
 
-**Checklist da fase 2:**
-- [ ] Tipo / distribuição / público / temperamento definidos
-- [ ] Audiência primária nomeada
-- [ ] Perguntas de intenção (se houve) respondidas
+## Fase 3: AUDIT (se já existe README)
 
-## Fase 3 — AUDIT ou DRAFT (estado atual)
+- Compare cada afirmação com o repo: comandos, caminhos, variáveis de ambiente, versões, badges.
+- Registre o que está certo, desatualizado, errado e faltando. Divergência com o código é achado, mesmo em README bonito.
+- Dependência opcional apresentada como obrigatória e passo que bloqueia o primeiro uso são achados.
+- Com `good-readme`, registre a nota de partida.
 
-Se JÁ existe README:
-1. `good-readme` — auditar contra 22 critérios; dar score /100.
-2. Registrar: o que está bom, o que está desatualizado, o que está errado
-   (claims que não batem com o código), o que falta.
-3. `project-readme-clarity` — checar ambiguidades de onboarding (dependência
-   opcional apresentada como obrigatória, passo que bloqueia primeiro valor).
+Sem README, siga direto para a Fase 4.
 
-Se NÃO existe README:
-1. Anotar Fase 1+2 e seguir direto para a Fase 4 (draft).
+## Fase 4: GENERATE
 
-VERIFICAR (comandos de auditoria):
-- `grep -c "^#\|^##" README.md` — conta headings p/ o TOC futuro.
-- `grep -oE "\]\([^)]*\)" README.md | grep -oE "\(\.?/?" | sort -u` — links
-  locais que precisam existir no disco; conferir com `ls` que cada um vive.
-- `grep -nE "install|npm |pnpm |pip |docker " README.md` — comandos citados;
-  validar se existem de fato no repo (não só no texto).
-- `bash ~/.hermes/skills/curating-readme/scripts/audit-repo.sh .` — re-rodar
-  o inventory se o repo mudou desde a Fase 1.
+1. Estrutura por tipo: título, badges do que existe, uma linha de descrição, o que faz, pré-requisitos,
+   quick start copiável, uso, configuração (tabela de env vars do `.env.example`), estrutura,
+   contribuição, licença. Detalhe em [references/estrutura.md](references/estrutura.md).
+2. Badge só do que existe: licença com `LICENSE`, build com CI configurada, versão com pacote publicado.
+3. Todo comando e exemplo mostrado precisa rodar neste repo.
+4. Uma língua por arquivo; tradução vai em arquivo separado (`README.pt-BR.md`).
+5. Passe `avoid-ai-writing` no texto, se instalada.
 
-**Comandos de auditoria (Fase 3):**
-```bash
-grep -nc "^#\|^##" README.md              # headings existentes
-grep -oE "\]\(\.?/?[^)]*\)" README.md      # links locais citados
-grep -nE "npm (install|run)|pnpm|pip |docker (run|compose)|uv " README.md 2>/dev/null
-# validar que cada comando existe de fato:
-command -v pnpm && pnpm --version
-git log --oneline -3
-```
+## Fase 5: VERIFY (antes de entregar)
 
-**Anti-padrões (Fase 3):**
-- NÃO dar score alto para README bonito mas incorreto (acurácia > estética).
-- NÃO ignorar claims do README que não batem com o código — cada divergência
-  é finding a corrigir.
-- NÃO apresentar dependência opcional como obrigatória (project-readme-clarity).
+1. **Rode os comandos** de instalação e quick start num ambiente limpo (clone novo ou diretório
+   temporário). O que não der para rodar (precisa de credencial, serviço externo, hardware),
+   liste no relatório com o motivo. Nunca escreva "testado" sobre o que não rodou.
+2. **Links locais resolvem**: cada `](caminho)` aponta para arquivo que existe.
+3. **Links externos respondem**: `curl -sI -o /dev/null -w '%{http_code}' <url>` em cada um.
+4. **Referências existem**: arquivos, scripts, env vars e flags citados estão no repo.
+5. **Índice bate** com os headings, se houver índice.
+6. Nenhum `TODO:` sobrou no texto final.
 
-**Checklist da fase 3:**
-- [ ] README existente auditado (22 critérios / score) OU confirmado inexistente
-- [ ] Checks de onboarding/ambiguidade rodados
-- [ ] Comandos/links do README atual validados contra o repo
-- [ ] Score baseline registrado (se README existia)
+Comandos prontos: [references/verificacao.md](references/verificacao.md).
 
-## Fase 4 — GENERATE (escrever com fatos verificados)
+## Relatório
 
-1. Estrutura canônica por tipo (referências do `good-readme`/`curating-readme`):
-   título + badges (só os que existem) + descrição 1 linha + features reais +
-   stack + prereqs + quickstart copy-paste + usage + config (tabela de env) +
-   estrutura do projeto + contributing + license.
-2. **Badges:** só incluir badges que refletem a realidade (license, linguagem,
-   build se houver CI) — não criar badge de coisa que não existe.
-3. **Exemplos de código: reais e testados.** Se o README mostra um comando
-   ou exemplo, ELE DEVE funcionar no repo — verificar.
-4. `avoid-ai-writing`: após redigir, limpar AI-isms (em-dash em excesso,
-   "robust/seamless/leverage", transições genéricas, conclusões vazias).
-5. Se o README for de repo público bonito (estilo shadcn/Vercel): seguir o
-   padrão visual do `wf-frontend` (hero + badges + TOC + tabelas limpas).
-6. VERIFICAR: cada claim do README tem fonte no repo (manifest, código,
-   script, LICENSE) — nada inventado.
+O que mudou, os achados da auditoria (antes e depois), os comandos executados com o resultado e o
+que não pôde ser verificado.
 
-**Comandos reais (Fase 4):**
-```bash
-# comandos do README que precisam existir no repo
-grep -oE '\b(npm|pnpm|python3|node |git|docker|uv) [^`]+' README.md
-# conferir licença/tipo
-head -1 LICENSE 2>/dev/null
-# TOC vs headings: contar headings reais
-grep -oE '^#{2,3} ' README.md | wc -l
-```
+## Não faça
 
-**Checklist da fase 4:**
-- [ ] Estrutura canônica seguida (adaptada ao tipo)
-- [ ] Badges só do que existe
-- [ ] Exemplos verificados contra o código
-- [ ] 0 AI-isms (detect do avoid-ai-writing)
-- [ ] Todo claim tem fonte
+- Inventar instalação, comando, exemplo, screenshot ou feature.
+- Copiar a estrutura de outro projeto sem adaptar ao tipo e ao público.
+- Duplicar a mesma informação em duas seções.
+- Encher de emojis ou badges decorativos.
 
-## Fase 5 — VERIFY + VALIDATE (prova de qualidade)
+## Critério de aceite
 
-1. Validar README gerado:
-   - Rodar `audit-repo.sh <repo>` de novo: conferir que nada essencial ficou
-     de fora.
-   - Checar links locais resolvem (`grep -o ']([^)]*)' README.md`; arquivos
-     citados existem).
-   - TOC bate com headings.
-   - Comandos no README existem (checar que os binários/comandos citados
-     são reais).
-2. `good-readme` — re-auditar: score final deve subir vs Fase 3 (se houve
-   README antes) ou ser alto (≥85/100) se criado.
-3. `avoid-ai-writing` detect: 0 AI-isms restantes.
-4. VERIFICAR gate do próprio workflow: `python3 ~/.hermes/skills/software-development/wf-qa/test_quality.py`.
-5. Relatório: score antes → depois, o que mudou, checks que passaram.
-
-**Checklist final:**
-- [ ] Links locais resolvem
-- [ ] Comandos do README são reais
-- [ ] TOC bate
-- [ ] Score de qualidade ≥ 85/100 (good-readme) ou melhorou vs antes
-- [ ] 0 AI-isms
-- [ ] Gate do workflow (test_quality.py) verde
-
-**Comandos de validação (Fase 5):**
-```bash
-# 1) links locais do README existem
-grep -oE '\]\(\.?/?[^)]*\)' README.md | sed 's/](//; s/)$//' | while read p; do [ -e "$p" ] || echo "MISSING: $p"; done
-# 2) TOC vs headings (sem TOC = ok, com TOC precisa bater)
-grep -oE '^##{1,3} ' README.md | wc -l
-# 3) 0 AI-isms (em-dash em excesso)
-grep -o "—" README.md | wc -l
-# 4) refere o LICENSE/contribuição existem
-ls LICENSE CONTRIBUTING.md 2>/dev/null
-# 5) gate do stack
-python3 ~/.hermes/skills/software-development/wf-qa/test_quality.py
-```
-
-**Anti-padrões desta fase:**
-- NÃO pular a re-auditoria (good-readme score) por "tá bom já".
-- NÃO entregar sem rodar o detect do avoid-ai-writing (AI-ism = regressão).
-- NÃO tratar "README mais bonito" como objetivo sem validar acurácia —
-  bonito ≠ correto; a acurácia vem antes.
-
-## Regras duras
-
-- NUNCA inventar instalação, comando, exemplo, screenshot ou feature que
-  não exista no repo — fato sem fonte vira TODO ou pergunta.
-- NUNCA incluir badge de coisa que não existe (CI sem CI, licensa sem LICENSE).
-- NUNCA entregar README com AI-isms (rodar avoid-ai-writing antes de fechar).
-- NUNCA afirmar "testado" sem ter executado o comando.
-- NUNCA copiar estrutura de outro projeto sem adaptar ao tipo/público real.
-- README do usuário do repo deve entender "clono → rodar" sem configurar
-  dependência opcional desnecessária (project-readme-clarity).
-- NUNCA deixar `TODO:` no README final — TODO só durante o rascunho; na
-  entrega, todo fato ou foi preenchido com fonte ou virou pergunta ao usuário.
-- NUNCA trocar linguagem da prosa no meio (EN/PT misturados) — o README
-  principal tem UMA língua; traduções vão em arquivos separados.
-- NÃO encher de emojis/badges decorativos; cada elemento tem função.
-- NÃO duplicar informação (instalação em 2 seções é bug de manutenção).
+- [ ] Toda afirmação tem fonte no repo ou virou pergunta respondida.
+- [ ] Comandos de instalação e quick start executados, ou listados como não verificáveis com motivo.
+- [ ] Links locais e externos resolvem; arquivos citados existem.
+- [ ] Badges só do que existe; nenhum `TODO:` no texto final.

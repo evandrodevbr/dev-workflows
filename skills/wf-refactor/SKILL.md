@@ -1,6 +1,11 @@
 ---
 name: wf-refactor
 description: Use para refatorar, reorganizar, renomear, extrair, simplificar ou limpar código sem mudar o comportamento. Congela o comportamento com testes antes de mexer e mexe em passos pequenos.
+license: MIT
+metadata:
+  dev-workflows:
+    uses: []
+    external: []
 ---
 
 # Workflow Refactor

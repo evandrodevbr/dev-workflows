@@ -1,7 +1,7 @@
 # Skills vendorizadas — origem e licença
 
 Este diretório contém cópias vendorizadas (não forks, não submodules) das
-skills de terceiros usadas pelo `wf-security-review`. Vendorizar em vez de só
+skills de terceiros usadas pelo `wf-security-review` e pelo `wf-frontend`. Vendorizar em vez de só
 linkar (como `docs/SKILLS.md` fazia antes) significa que `git clone
 dev-workflows` já traz tudo funcional, sem passo manual de instalação externa.
 
@@ -26,8 +26,8 @@ repo de origem, ou comparar datas).
 
 As duas skills do taste-skill são usadas pelo `wf-frontend`. O `LICENSE` do
 upstream vai dentro de cada diretório, porque a MIT exige que o aviso de
-copyright acompanhe a cópia. `design-taste-frontend` tem ~87 KB (~22 mil
-tokens): carregue só para UI nova, não para ajuste pontual.
+copyright acompanhe a cópia. `design-taste-frontend` tem ~87 KB (~35 mil
+tokens por carga, medido com `claude plugin details`): carregue só para UI nova, não para ajuste pontual.
 
 Licença CC-BY-4.0 (OWASP/secure-agent-playbook) exige atribuição — mantida
 via a tabela acima e o link direto ao repo original em cada menção nos
@@ -62,7 +62,8 @@ nos caminhos: as referências `../../../schemas/…` e `../../../docs/…`
 apontavam para a raiz do repo de origem, que tinha um nível a mais
 (`skills/<categoria>/<skill>/`). Como aqui o diretório é plano
 (`skills/<skill>/`), os links foram ajustados para o caminho relativo dentro
-da própria skill, que é o que sobrevive a `cp -r skills/* ~/.hermes/skills/`.
+da própria skill, que é o que sobrevive quando a pasta da skill é copiada sozinha (plugin,
+`scripts/install.py opencode` ou `hermes`).
 
 ## Lacunas conhecidas
 

@@ -1,6 +1,11 @@
 ---
 name: lean-code
 description: Use sempre que for escrever ou mudar código. Escolhe a menor solução que resolve de verdade - reaproveitar antes de escrever, apagar antes de somar, sem abstração especulativa e sem dependência desnecessária.
+license: MIT
+metadata:
+  dev-workflows:
+    uses: [safedeps]
+    external: []
 ---
 
 # Lean Code
