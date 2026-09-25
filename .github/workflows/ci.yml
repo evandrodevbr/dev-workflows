@@ -16,7 +16,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Isolamento Linux para testes do loop
+        run: sudo apt-get update && sudo apt-get install -y bubblewrap
       - name: Lint das skills, agentes e hooks
         run: python3 qa/lint_skills.py
       - name: Testes do gate e dos hooks
         run: python3 qa/test_gate.py
+      - name: Testes comportamentais de catálogo, roteador, adapters e loop
+        run: python3 -m unittest discover -s qa -p 'test_*.py' -q
