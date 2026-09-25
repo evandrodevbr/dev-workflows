@@ -1,115 +1,75 @@
-# Skills usadas e de onde vieram
+# Skills: inventário e origem
 
-Este é o inventário do que os workflows carregam. Cada skill é um diretório
-com um `SKILL.md` dentro, e esse diretório é obrigatório nos dois agentes
-(a skill é `<nome>/SKILL.md`, nunca um `.md` solto, que não é indexado):
-no Hermes Agent, em `~/.hermes/skills/<nome>/SKILL.md`; no Claude Code, em
-`~/.claude/skills/<nome>/SKILL.md`.
+Cada skill é um diretório `skills/<nome>/SKILL.md`. O plugin carrega todas; `scripts/install.py`
+copia para o opencode ou o Hermes.
 
-## Workflows orquestradores (em `workflows/`)
+## Do próprio repositório
 
-| Workflow | Para quê |
+| Skill | Para quê |
 |---|---|
-| `wf-frontend` | UI/design/PDF |
-| `wf-backend` | API/backend seguro |
-| `wf-architecture` | Arquitetura/ADR/C4 |
-| `wf-security-review` | Code review de segurança front+back |
-| `wf-readme` | Criar/auditar/reescrever READMEs grounded |
+| `dev-router` | Classifica o pedido em nível 0 a 3 e decide workflows, agentes e gate |
+| `lean-code` | Menor solução que resolve: reaproveitar, apagar, sem abstração nem dependência sem motivo |
+| `wf-bugfix` | Reproduzir, causa raiz, teste de regressão que falha antes e passa depois |
+| `wf-refactor` | Testes de caracterização, passos pequenos, comportamento igual |
+| `wf-frontend` | UI e PDF: design (nível 2+), build acessível e responsivo, revisão visual |
+| `wf-backend` | API: contrato primeiro (nível 2+), defaults seguros, auditoria OWASP, testes |
+| `wf-architecture` | Nível 3: spec EARS, C4, ADR, STRIDE, revisão |
+| `wf-security-review` | Revisão de segurança front e back com CVEs consultados ao vivo |
+| `wf-readme` | README fundamentado em fatos do repositório, comandos executados antes da entrega |
 
-## README (wf-readme)
+## Vendorizadas (vêm no clone)
 
-| Skill | Origem | O que faz |
-|---|---|---|
-| `readme-crafter` | [linhai0872/readme-crafter-skill](https://github.com/linhai0872/readme-crafter-skill) | Classifica projeto (tipo/público/temperamento) e gera README sob medida; 13 checks |
-| `good-readme` | [adewale/good-readme](https://github.com/adewale/good-readme) | Cria com exemplos reais OU audita contra 22 critérios (escala 100) |
-| `curating-readme` | [liang-senbei/curating-readme](https://github.com/liang-senbei/curating-readme) | Padroniza README + docs (CONTRIBUTING/CHANGELOG) com `audit-repo.sh` |
-
-## Pilar de segurança (wf-security-review)
-
-**Vendorizadas neste repo** em `skills/<nome>/` — ver `skills/NOTICE.md` pra
-origem exata (commit + licença) de cada uma. Não precisa clonar nada externo
-pra este pilar.
+Origem, commit e licença de cada uma: [`skills/NOTICE.md`](../skills/NOTICE.md).
 
 | Skill | Origem | O que faz |
 |---|---|---|
-| `safedeps` | [Jeneidi/safedeps](https://github.com/Jeneidi/safedeps) | Consulta OSV.dev em tempo real; CVE por `package@version` com severidade e versão de fix. Inclui o script `check_deps.py` |
-| `sca-audit` | [OWASP/secure-agent-playbook](https://github.com/OWASP/secure-agent-playbook) | SCA de dependências com análise de alcance (reachability), mapeamento CWE |
-| `code-review-security` | OWASP/secure-agent-playbook | Code review de segurança sistemático mapeado a OWASP Top 10 + ASVS |
-| `secrets-scan` | OWASP/secure-agent-playbook | Detecta credenciais/API keys no código e no git history |
-| `api-security-review` | OWASP/secure-agent-playbook | Revisão de API contra OWASP API Security Top 10 |
-| `web-security-review` | OWASP/secure-agent-playbook | Web app contra OWASP Top 10 (2021) |
-| `cve-triage` | [UnitOneAI/SecuritySkills](https://github.com/UnitOneAI/SecuritySkills) | Prioriza CVE por CVSS 4.0 / EPSS / CISA KEV |
-| `patch-prioritization` | UnitOneAI/SecuritySkills | Decide a ordem de remediação |
-| `dependency-scanning` | UnitOneAI/SecuritySkills | Varredura de dependências |
+| `safedeps` | [Jeneidi/safedeps](https://github.com/Jeneidi/safedeps) | CVE por `package@version` consultando o OSV.dev ao vivo |
+| `sca-audit` | [OWASP/secure-agent-playbook](https://github.com/OWASP/secure-agent-playbook) | Auditoria de dependências com análise de alcance e CWE |
+| `code-review-security` | OWASP/secure-agent-playbook | Code review de segurança mapeado a OWASP Top 10 e ASVS |
+| `secrets-scan` | OWASP/secure-agent-playbook | Credenciais e chaves no código e no histórico do git |
+| `api-security-review` | OWASP/secure-agent-playbook | API contra o OWASP API Security Top 10 |
+| `web-security-review` | OWASP/secure-agent-playbook | Web app contra o OWASP Top 10 |
+| `cve-triage` | [UnitOneAI/SecuritySkills](https://github.com/UnitOneAI/SecuritySkills) | Prioriza CVE por CVSS 4.0, EPSS e CISA KEV |
+| `patch-prioritization` | UnitOneAI/SecuritySkills | Ordem de remediação |
+| `dependency-scanning` | UnitOneAI/SecuritySkills | Varredura da árvore de dependências |
+| `hermaguard` | [Sahil-SS9/hermaguard](https://github.com/Sahil-SS9/hermaguard) | Revisão adversarial: pre-scan e 3 agentes (borda, ataque, blast radius) |
+| `design-taste-frontend` | [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill) | Gera tela nova sem cara de template |
+| `redesign-existing-projects` | Leonxlnx/taste-skill | Audita UI existente e melhora sem quebrar |
 
-## Frontend / UI / design (wf-frontend)
+## Externas (opcionais)
 
-| Skill | Origem | O que faz |
-|---|---|---|
-| `frontend-design` | [anthropics/skills](https://github.com/anthropics/skills) | Direção visual, tipografia, fugir do genérico |
-| `web-design` | [KAOPU-XiaoPu/web-design](https://github.com/KAOPU-XiaoPu/web-design) | Estética web coesa |
-| `vercel-react-best-practices` | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | 40+ regras de perf React/Next |
-| `vercel-composition-patterns` | vercel-labs/agent-skills | Compound components, composição |
-| `animate` | [emilkowalski/skill](https://github.com/emilkowalski/skill) | Motion com propósito |
-| `impeccable` | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | Vocabulário de design: 23 comandos + 59 regras determinísticas anti-slop |
-| `design-taste-frontend` | [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill) (vendorizada em `skills/`) | Gera UI nova sem cara de template; 3 controles de variância, motion e densidade |
-| `redesign-existing-projects` | Leonxlnx/taste-skill (vendorizada em `skills/`) | Audita UI existente e melhora sem quebrar funcionalidade |
-| `anti-ai-slop` | local | Detecta padrão visual "gerado por IA" |
-| `avoid-ai-writing` | [conorbronsdon/avoid-ai-writing](https://github.com/conorbronsdon/avoid-ai-writing) | Remove AI-isms de texto/microcopy |
-
-## Backend / API (wf-backend)
-
-| Skill | Origem | O que faz |
-|---|---|---|
-| `secure-coding` | [v6x/secure-coding-skill](https://github.com/securityreviewai/secure-coding-skill) | Padrões de codificação segura em 15 stacks |
-| `bola-detector` | [apisec-inc/apisec-skills](https://github.com/apisec-inc/apisec-skills) | Detecta object-level authorization (OWASP API1) |
-| `auth-rbac-scaffold` | apisec-inc/apisec-skills | Auth/RBAC (OWASP API2/API5) |
-| `injection-checker` | apisec-inc/apisec-skills | Injection SQL/ORM/shell (OWASP API8) |
-| `openapi-hardener` | apisec-inc/apisec-skills | Saneia schemas OpenAPI/Zod (OWASP API3) |
-| `api-security-review` | apisec-inc/apisec-skills | Review completo OWASP API Top 10 |
-| `security-test-generator` | apisec-inc/apisec-skills | Gera testes de segurança |
-
-## Arquitetura (wf-architecture)
-
-| Skill | Origem | O que faz |
-|---|---|---|
-| `system-design` | [Kotivskyi/architecture-governance-skills](https://github.com/Kotivskyi/architecture-governance-skills) | Framework HelloInterview de system design |
-| `c4-architecture` | Kotivskyi/architecture-governance-skills | Diagramas C4 (Mermaid/Structurizr) |
-| `isaqb-architecture-governance` | Kotivskyi/architecture-governance-skills | arc42 + ADR |
-| `secure-architecture-governance` | Kotivskyi/architecture-governance-skills | Threat model STRIDE+CIA, S-ADR |
-
-## Caça de bugs (todas)
-
-| Skill | Origem | O que faz |
-|---|---|---|
-| `hermaguard` | [Sahil-SS9/hermaguard](https://github.com/Sahil-SS9/hermaguard) | Review adversarial: pre-scan + 3 agentes (edge cases, ataque, blast radius) |
-
-## Como instalar as skills de origem
-
-**Pilar de segurança:** já vem vendorizado em `skills/` neste repo — sem
-clone externo. Copie direto:
+Os workflows usam estas quando instaladas e seguem as próprias regras quando não. Instalação no
+formato Agent Skills:
 
 ```bash
-# Hermes Agent:
-cp -r skills/* ~/.hermes/skills/
-
-# Claude Code (cada skill no seu próprio diretório):
-mkdir -p "$HOME/.claude/skills"
-for d in skills/*/; do
-  cp -r "$d" "$HOME/.claude/skills/"
-done
+npx skills add <dono/repo> --skill <nome>
 ```
 
-Os arquivos de apoio que cada skill referencia (`plays/`, `templates/`,
-`schemas/`, `docs/`) ficam dentro do diretório da própria skill, então o
-`cp -r` os leva junto. Origem e licença de cada um: `skills/NOTICE.md`.
+| Skill | Origem | Usada por |
+|---|---|---|
+| `frontend-design` | [anthropics/skills](https://github.com/anthropics/skills) | `wf-frontend` |
+| `impeccable` | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | `wf-frontend`, `ui-critic` |
+| `vercel-react-best-practices` | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | `wf-frontend` |
+| `vercel-composition-patterns` | vercel-labs/agent-skills | `wf-frontend` |
+| `animate` | [emilkowalski/skill](https://github.com/emilkowalski/skill) | `wf-frontend` |
+| `web-design` | [KAOPU-XiaoPu/web-design](https://github.com/KAOPU-XiaoPu/web-design) | `wf-frontend` |
+| `avoid-ai-writing` | [conorbronsdon/avoid-ai-writing](https://github.com/conorbronsdon/avoid-ai-writing) | `wf-frontend`, `wf-readme` |
+| `secure-coding` | [securityreviewai/secure-coding-skill](https://github.com/securityreviewai/secure-coding-skill) | `wf-backend` |
+| `bola-detector` | [apisec-inc/apisec-skills](https://github.com/apisec-inc/apisec-skills) | `wf-backend`, `wf-security-review` |
+| `auth-rbac-scaffold` | apisec-inc/apisec-skills | `wf-backend`, `wf-security-review` |
+| `injection-checker` | apisec-inc/apisec-skills | `wf-backend`, `wf-security-review` |
+| `openapi-hardener` | apisec-inc/apisec-skills | `wf-backend` |
+| `security-test-generator` | apisec-inc/apisec-skills | `wf-backend` |
+| `system-design` | [Kotivskyi/architecture-governance-skills](https://github.com/Kotivskyi/architecture-governance-skills) | `wf-architecture` |
+| `c4-architecture` | Kotivskyi/architecture-governance-skills | `wf-architecture` |
+| `isaqb-architecture-governance` | Kotivskyi/architecture-governance-skills | `wf-architecture` |
+| `secure-architecture-governance` | Kotivskyi/architecture-governance-skills | `wf-architecture` |
+| `readme-crafter` | [linhai0872/readme-crafter-skill](https://github.com/linhai0872/readme-crafter-skill) | `wf-readme` |
+| `good-readme` | [adewale/good-readme](https://github.com/adewale/good-readme) | `wf-readme` |
+| `curating-readme` | [liang-senbei/curating-readme](https://github.com/liang-senbei/curating-readme) | `wf-readme` |
 
-**Frontend/backend/arquitetura** (ainda não vendorizadas, instalam de fora):
-a maioria via `npx skills` (formato agentskills.io):
+A apisec-inc também publica uma skill chamada `api-security-review`. Ela não é usada aqui: o nome
+colide com a versão OWASP vendorizada.
 
-```bash
-npx skills add anthropics/skills --skill frontend-design
-npx skills add vercel-labs/agent-skills --skill vercel-react-best-practices
-npx skills add conorbronsdon/avoid-ai-writing
-npx skills add https://github.com/pbakaus/impeccable --skill impeccable
-```
+O `impeccable` não é vendorizado porque traz scripts executáveis de terceiros; instale-o você mesmo
+(`npx skills add https://github.com/pbakaus/impeccable --skill impeccable`) se quiser o `/impeccable audit`.

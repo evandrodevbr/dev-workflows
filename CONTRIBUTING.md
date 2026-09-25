@@ -1,36 +1,29 @@
 # Contributing
 
-Thanks for taking the time to contribute. This project is small, so keep it simple: open an issue to discuss first, then send a PR.
+Open an issue to discuss first, then send a small, focused PR.
 
-## What to improve
+## Rules
 
-Workflows, skills, or the QA harness. All changes should keep the same rules the workflows themselves enforce:
-
-1. **Grounded.** Every claim in a workflow or README must trace back to a real repository fact. No fabricated commands, examples, or badges.
-2. **Verifiable phases.** A phase is not done until it has a verification step (a command that proves the work). Add one if you touch a workflow.
-3. **No AI-isms.** Docs and workflows must pass the avoid-ai-writing check (no em-dash runs, no "robust/seamless/leverage" filler).
-
-## What not to change
-
-- The QA harness must keep its meta-tests green. If you change scoring, re-run `qa/test_tests.py` and update `qa/snapshots/baseline-final.json`.
-- Do not remove skills referenced by workflows without updating the workflows and `docs/SKILLS.md` together.
+1. **Grounded.** Every command, path and claim in a skill or README traces to a real fact. No invented commands or badges.
+2. **Short skills.** `SKILL.md` stays under 150 lines; details go to `references/` next to it.
+3. **Proportional.** Each phase says from which tier it runs. Nothing is mandatory for every request unless it is cheap (the tier 0 gate).
+4. **Checks are tools, not keyword counts.** A verification step runs something that can fail (tests, scanners, the gate). `grep -c` of a word proves nothing.
+5. **No AI-isms** in docs and skills (no em-dash runs, no "robust/seamless/leverage").
+6. **Vendored skills are copied 1:1** with their license, and recorded in `skills/NOTICE.md` (origin, commit, license).
 
 ## Local checks before a PR
 
 ```bash
-cd qa
-python3 wf_quality_harness.py    # score must not drop below baseline
-python3 test_quality.py          # gates green
-python3 test_tests.py            # meta-tests green
+python3 qa/lint_skills.py
+python3 qa/test_gate.py
+claude plugin validate --strict .claude-plugin/plugin.json
 ```
+
+A new skill referenced by a workflow goes into its `metadata.dev-workflows.uses` (vendored) or
+`external` (listed in `docs/SKILLS.md`); the lint checks both.
 
 ## Process
 
-1. Fork the repo.
-2. Create a branch: `git checkout -b feat/your-change`.
-3. Make the change. Keep it small and focused.
-4. Run the qa checks above.
-5. Commit with a clear message.
-6. Open a PR describing what changed and why.
-
-Questions or ideas: open an issue.
+1. Fork and branch: `git checkout -b feat/your-change`.
+2. Make the change and run the checks above.
+3. Open a PR saying what changed and why.

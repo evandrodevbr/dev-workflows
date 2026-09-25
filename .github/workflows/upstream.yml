@@ -1,0 +1,17 @@
+name: upstream
+
+on:
+  schedule:
+    - cron: "0 9 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vendored-skills:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skills vendorizadas atrás do upstream
+        run: python3 qa/check_upstream.py

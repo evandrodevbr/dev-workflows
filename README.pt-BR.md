@@ -2,16 +2,13 @@
 
 # Dev Workflows
 
-**Workflows de agente como arquivos SKILL.md**: frontend, backend, arquitetura e code review de segurança que nunca pulam a verificação.
+**Plugin do Claude Code (também para opencode e Hermes Agent) que ajusta o processo ao tamanho do pedido**: um roteador escolhe o nível, agentes com permissão mínima fazem o trabalho e um gate de qualidade determinístico decide quando terminou.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](qa/wf_quality_harness.py)
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-1.0-8A2BE2)](https://agentskills.io)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/evandrodevbr/dev-workflows/pulls)
+[![CI](https://github.com/evandrodevbr/dev-workflows/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 
-Transforme seu agente de código num processo repetível e verificável. Cada workflow define fases, passos de verificação concretos, comandos reais e regras duras. O agente entrega trabalho que dá pra *checar*, não só *afirmar*.
-
-**🇺🇸 [Read this in English](README.md)**
+**🇺🇸 [Read in English](README.md)**
 
 </div>
 
@@ -19,251 +16,111 @@ Transforme seu agente de código num processo repetível e verificável. Cada wo
 
 ## Por quê
 
-Agente é ótimo pra gerar código e péssimo pra admitir que não sabe. Este projeto resolve a segunda parte.
+Agentes escrevem código rápido e erram em duas coisas: saber quando uma tarefa merece mais processo
+e admitir o que não verificaram. Este plugin cuida das duas:
 
-Cada workflow força o agente a **provar** o trabalho em cada fase:
+- **Processo proporcional ao pedido.** Typo não passa por revisão de design; mudança de auth passa.
+- **Prova, não afirmação.** "Pronto" exige um relatório do gate sobre o diff atual. Ferramenta não instalada aparece como *não verificado*, nunca como aprovada.
+- **Menos código.** Reaproveitar antes de escrever, apagar antes de somar, nenhuma dependência sem motivo.
+- **Segurança com fontes ao vivo.** O conhecimento de CVEs de um modelo para na data de treino, então as revisões consultam o OSV.dev e registram a data.
 
-- **Passos de verificação**: rodar build, rodar testes, chamar a API, consultar o registry. Não "acho que funciona".
-- **Critérios de aceite**: portões com checkbox que precisam estar marcados pra fase fechar.
-- **Regras duras**: "nunca faça merge com build vermelho", "nunca afirme 'sem CVE' sem consultar o OSV.dev".
-- **Harness de QA**: um placar que mede a qualidade dos workflows de forma objetiva, mais meta-testes que corrompem o harness pra provar que ele detecta regressão.
+## Como funciona
 
-## Sumário
+O `dev-router` carrega primeiro e declara um nível:
 
-- [Workflows](#workflows)
-- [Segurança: não confie no cutoff de treino](#segurança-não-confie-no-cutoff-de-treino)
-- [Skills usadas e seus donos](#skills-usadas-e-seus-donos)
-- [Começo rápido](#começo-rápido)
-- [O harness de QA](#o-harness-de-qa)
-- [Testes de qualidade e ganhos medidos](#testes-de-qualidade-e-ganhos-medidos)
-- [Estrutura do repositório](#estrutura-do-repositório)
-- [Licença](#licença)
-
-## Workflows
-
-| Workflow | Arquivo | Cobre |
+| Nível | Quando | O que roda |
 |---|---|---|
-| 🎨 **Frontend / UI** | [workflows/wf-frontend.md](workflows/wf-frontend.md) | Direção de design antes do código, anti-AI-slop, performance React, QA visual de PDFs |
-| ⚙️ **Backend / API** | [workflows/wf-backend.md](workflows/wf-backend.md) | Contrato antes do handler, defaults seguros, auditoria OWASP, testes + caça de bugs adversarial |
-| 🏗️ **Arquitetura** | [workflows/wf-architecture.md](workflows/wf-architecture.md) | Requisitos mensuráveis, diagramas C4, ADRs, threat modeling, revisão |
-| 🛡️ **Security review** | [workflows/wf-security-review.md](workflows/wf-security-review.md) | Code review (front + back), CVEs conhecidas **e** consulta ao vivo de novas |
-| 📄 **README** | [workflows/wf-readme.md](workflows/wf-readme.md) | Criar/auditar/reescrever READMEs grounded nos fatos reais do repo |
+| 0, trivial | nenhum comportamento muda | a mudança + gate nível 0 |
+| 1, pequeno | 1 a 3 arquivos, sem superfície pública nova | `wf-bugfix` ou `wf-refactor`, teste de regressão, gate nível 1 |
+| 2, feature | endpoint ou tela nova, contrato alterado, dependência nova | exploração, plano curto, TDD, revisão independente, gate nível 2 |
+| 3, grande ou de risco | vários módulos, dados existentes, arquitetura, release | spec EARS + ADR aprovados por você, revisões, auditoria de segurança, gate nível 3 |
 
-Cada arquivo é um `SKILL.md` padrão. A `description` no frontmatter é o gatilho: quando o contexto do agente bate, o workflow carrega sozinho. Funciona no [Hermes Agent](https://hermes-agent.nousresearch.com), Claude Code e qualquer coisa que leia o formato Agent Skills.
+Gatilhos de segurança sobem o nível a qualquer momento: auth, dinheiro, dados pessoais, upload, SQL
+montado à mão, shell/exec, desserialização, migração de schema, dependência nova, feature que chama LLM.
 
-## Segurança: não confie no cutoff de treino
+## O que tem dentro
 
-O conhecimento de CVEs de um modelo para na data do treinamento. Qualquer coisa divulgada depois disso, ele nunca viu, então "não tem vulnerabilidade" vindo de memória é um chute, não resposta.
+| Tipo | Itens |
+|---|---|
+| Roteador e regras | `dev-router`, `lean-code` |
+| Workflows | `wf-bugfix`, `wf-refactor`, `wf-frontend`, `wf-backend`, `wf-architecture`, `wf-security-review`, `wf-readme` |
+| Agentes | `explorer` (haiku, só leitura), `planner` (opus, só leitura), `implementer` (sonnet), `reviewer` (opus, só leitura, vê só o diff), `security-auditor` (opus, só leitura), `ui-critic` (sonnet, só leitura), `verifier` (haiku, roda o gate) |
+| Hooks | `Stop`: bloqueia o "pronto" enquanto houver código alterado sem gate atual aprovado · `PreToolUse`: nega `--no-verify` e force-push, pergunta antes de `reset --hard`, `clean -f`, `DROP TABLE` · `PostToolUse`: formata o arquivo editado com o formatter do próprio projeto |
+| Gate de qualidade | [`scripts/quality-gate`](scripts/quality-gate): lint, typecheck, testes, gitleaks (nível 0); cobertura do diff, semgrep, código morto (nível 1); build, teste de mutação, osv-scanner, regras de arquitetura, duplicação (nível 2); trivy, rastreabilidade requisito→teste (nível 3) |
+| Skills vendorizadas | pilar de segurança (OWASP secure-agent-playbook, UnitOneAI SecuritySkills, safedeps, hermaguard) e taste-skill para frontend. Origem e licença: [`skills/NOTICE.md`](skills/NOTICE.md) |
 
-O workflow de segurança nasceu desse fato:
+O gate roda só as checagens do nível pedido, só sobre o diff, e não usa IA: são ferramentas comuns.
+Checagens que precisam do app de pé (orçamento do Lighthouse CI, Playwright + axe, schemathesis, k6)
+entram por projeto no `.dev-workflows.toml`. Referência:
+[`skills/dev-router/references/quality-gate.md`](skills/dev-router/references/quality-gate.md).
 
-```
-Código/diff → SCOPE → HUNT (CVEs conhecidas) → CONSULT (fontes vivas) → CODE REVIEW → REPORT + GATE
-                    │                            │
-                    │                            └─ OSV.dev · GitHub Advisory DB · NVD
-                    └──────────────┘
-```
-
-Todo security review **precisa** consultar fontes vivas e carimbar a data. Review sem fonte e sem data vence na hora.
-
-## Skills usadas e seus donos
-
-Os workflows carregam essas skills por contexto. Os três pilares do security review vêm de fontes primárias de segurança (OWASP, OSV.dev, UnitOne SecuritySkills), não da memória de um modelo.
-
-### 🛡️ Security review: os três pilares
-
-_Vendorizadas em `skills/` — ver [`skills/NOTICE.md`](skills/NOTICE.md) pra origem exata e licença._
-
-| Skill | O que faz | Dono |
-|---|---|---|
-| [`safedeps`](https://github.com/Jeneidi/safedeps) | Consulta o OSV.dev em tempo real; devolve CVE + severidade + versão corrigida pra um `package@version`. Cobre o buraco que um modelo congelado não cobre. | [Jeneidi](https://github.com/Jeneidi) |
-| [`sca-audit`](https://github.com/OWASP/secure-agent-playbook) | Auditoria de supply chain de dependências com análise de alcance e mapeamento CWE. | [OWASP](https://github.com/OWASP) |
-| [`code-review-security`](https://github.com/OWASP/secure-agent-playbook) | Code review de segurança sistemático mapeado a OWASP Top 10 + ASVS. | [OWASP](https://github.com/OWASP) |
-
-### 🛡️ Security review: skills de apoio
-
-_Também vendorizadas em `skills/`._
-
-| Skill | O que faz | Dono |
-|---|---|---|
-| [`secrets-scan`](https://github.com/OWASP/secure-agent-playbook) | Encontra credenciais / API keys no código e no git history. | [OWASP](https://github.com/OWASP) |
-| [`api-security-review`](https://github.com/OWASP/secure-agent-playbook) | Revisão de API contra OWASP API Security Top 10. | [OWASP](https://github.com/OWASP) |
-| [`web-security-review`](https://github.com/OWASP/secure-agent-playbook) | Revisão de web app contra OWASP Top 10. | [OWASP](https://github.com/OWASP) |
-| [`cve-triage`](https://github.com/UnitOneAI/SecuritySkills) | Prioriza CVEs com CVSS 4.0 / EPSS / CISA KEV. | [UnitOneAI](https://github.com/UnitOneAI) |
-| [`patch-prioritization`](https://github.com/UnitOneAI/SecuritySkills) | Decide a ordem da correção. | [UnitOneAI](https://github.com/UnitOneAI) |
-| [`dependency-scanning`](https://github.com/UnitOneAI/SecuritySkills) | Varredura da árvore de dependências. | [UnitOneAI](https://github.com/UnitOneAI) |
-| [`hermaguard`](https://github.com/Sahil-SS9/hermaguard) | Review adversarial: pré-scan estático + 3 agentes especialistas (edge cases, ataque, blast radius). | [Sahil-SS9](https://github.com/Sahil-SS9) |
-
-### 🎨 Frontend / UI
-
-| Skill | O que faz | Dono |
-|---|---|---|
-| [`frontend-design`](https://github.com/anthropics/skills) | Direção visual intencional, tipografia, fugindo do padrão "IA genérica". | [Anthropic](https://github.com/anthropics) |
-| [`web-design`](https://github.com/KAOPU-XiaoPu/web-design) | Estética web coesa. | [KAOPU-XiaoPu](https://github.com/KAOPU-XiaoPu) |
-| [`vercel-react-best-practices`](https://github.com/vercel-labs/agent-skills) | 40+ regras de performance React/Next da engenharia da Vercel. | [Vercel Labs](https://github.com/vercel-labs) |
-| [`vercel-composition-patterns`](https://github.com/vercel-labs/agent-skills) | Compound components, composição limpa. | [Vercel Labs](https://github.com/vercel-labs) |
-| [`animate`](https://github.com/emilkowalski/skill) | Motion com propósito. | [emilkowalski](https://github.com/emilkowalski) |
-| [`impeccable`](https://github.com/pbakaus/impeccable) | O vocabulário de design que faltava pros agentes: 23 comandos (craft, shape, audit, polish, animate, live) e 59 regras determinísticas anti-slop. A skill de design frontend mais usada (230k+ instalações). | [pbakaus](https://github.com/pbakaus) |
-| [`design-taste-frontend`](https://github.com/Leonxlnx/taste-skill) | Gera UI nova com direção inferida do brief; três controles de 1 a 10 (variância, motion, densidade). Vendorizada em `skills/`. | [Leonxlnx](https://github.com/Leonxlnx) |
-| [`redesign-existing-projects`](https://github.com/Leonxlnx/taste-skill) | Audita uma UI existente e melhora sem quebrar o comportamento. Vendorizada em `skills/`. | [Leonxlnx](https://github.com/Leonxlnx) |
-| [`anti-ai-slop`](https://github.com/evandrodevbr/dev-workflows) | Detecta padrão visual "gerado por IA" (auto-carregada, local). | skill da comunidade |
-| [`avoid-ai-writing`](https://github.com/conorbronsdon/avoid-ai-writing) | Remove AI-isms de microcopy, labels e docs. | [conorbronsdon](https://github.com/conorbronsdon) |
-
-### ⚙️ Backend / API
-
-| Skill | O que faz | Dono |
-|---|---|---|
-| [`secure-coding`](https://github.com/securityreviewai/secure-coding-skill) | Padrões de codificação segura em 15 stacks. | [securityreviewai](https://github.com/securityreviewai) |
-| [`bola-detector`](https://github.com/apisec-inc/apisec-skills) | Object-level authorization quebrada (OWASP API1). | [apisec-inc](https://github.com/apisec-inc) |
-| [`auth-rbac-scaffold`](https://github.com/apisec-inc/apisec-skills) | Autenticação + RBAC (OWASP API2 / API5). | [apisec-inc](https://github.com/apisec-inc) |
-| [`injection-checker`](https://github.com/apisec-inc/apisec-skills) | Injeção SQL / ORM / shell / template (OWASP API8). | [apisec-inc](https://github.com/apisec-inc) |
-| [`openapi-hardener`](https://github.com/apisec-inc/apisec-skills) | Sanear schemas OpenAPI / Zod / Pydantic (OWASP API3). | [apisec-inc](https://github.com/apisec-inc) |
-| [`api-security-review`](https://github.com/apisec-inc/apisec-skills) | Review completo OWASP API Top 10. | [apisec-inc](https://github.com/apisec-inc) |
-| [`security-test-generator`](https://github.com/apisec-inc/apisec-skills) | Gera suítes de testes de segurança. | [apisec-inc](https://github.com/apisec-inc) |
-
-> ⚠️ `api-security-review` são duas skills diferentes com o mesmo nome: a da OWASP vendorizada em `skills/` (pilar de segurança, acima) e a da apisec-inc nesta tabela. Só a cópia da OWASP vem neste repositório. Instale a que o seu workflow precisa -- com as duas presentes, agentes que resolvem por nome de skill acusam colisão.
-
-### 🏗️ Arquitetura
-
-| Skill | O que faz | Dono |
-|---|---|---|
-| [`system-design`](https://github.com/Kotivskyi/architecture-governance-skills) | Framework HelloInterview de system design. | [Kotivskyi](https://github.com/Kotivskyi) |
-| [`c4-architecture`](https://github.com/Kotivskyi/architecture-governance-skills) | Diagramas C4 (Mermaid / Structurizr). | [Kotivskyi](https://github.com/Kotivskyi) |
-| [`isaqb-architecture-governance`](https://github.com/Kotivskyi/architecture-governance-skills) | arc42 + ADRs. | [Kotivskyi](https://github.com/Kotivskyi) |
-| [`secure-architecture-governance`](https://github.com/Kotivskyi/architecture-governance-skills) | Threat models STRIDE+CIA, ADRs de segurança. | [Kotivskyi](https://github.com/Kotivskyi) |
-
-> 📖 Instruções completas de instalação de cada skill estão em [docs/SKILLS.md](docs/SKILLS.md).
-
-## Começo rápido
+## Instalação
 
 ```bash
-# 1. Copie os workflows pro diretório de skills do seu agente.
-# Cada skill precisa do seu próprio diretório com um SKILL.md dentro -- um
-# .md solto numa pasta de categoria não é indexado (nem o Hermes nem o
-# Claude Code carregam), por isso o loop abaixo monta a estrutura certa.
-SKILLS_DIR="$HOME/.hermes/skills/software-development"
-# Claude Code: SKILLS_DIR="$HOME/.claude/skills"
+git clone https://github.com/evandrodevbr/dev-workflows && cd dev-workflows
 
-for f in workflows/*.md; do
-  nome=$(basename "$f" .md)
-  mkdir -p "$SKILLS_DIR/$nome"
-  cp "$f" "$SKILLS_DIR/$nome/SKILL.md"
-done
-
-# 2. (Opcional, pro security review) as skills de apoio já vêm vendorizadas
-# em skills/ -- sem clone externo, só copiar:
-cp -r skills/* "$HOME/.hermes/skills/"
-
-# 3. Use
-# "review this PR for security"  -> wf-security-review carrega
-# "build a new page"              -> wf-frontend carrega
+python3 scripts/install.py claude     # plugin: skills + agentes + hooks
+python3 scripts/install.py opencode   # skills, agentes e plugin em ~/.config/opencode
+python3 scripts/install.py hermes     # só skills, em ~/.hermes/skills
 ```
 
-Pra conferir se a instalação pegou: os workflows devem aparecer na lista de
-skills do agente (`hermes skills list` no Hermes Agent).
+Claude Code sem clonar:
 
-## O harness de QA
+```text
+/plugin marketplace add evandrodevbr/dev-workflows
+/plugin install dev-workflows@dev-workflows
+```
 
-O diretório `qa/` mantém os próprios workflows honestos:
+Diferenças entre os agentes:
+
+- **opencode** não consegue bloquear o fim do turno, então gate ausente ou falho vira aviso no log em vez de bloqueio. Os agentes viram subagentes do opencode com as mesmas permissões.
+- **Hermes** recebe só as skills; rode o gate você mesmo.
+- No opencode e no Hermes as cópias apontam para o seu clone: mantenha-o no lugar (ou rode a instalação de novo depois de mover).
+
+Desligue o hook de `Stop` numa sessão com `DW_GATE=off`.
+
+## Skills externas (opcionais)
+
+Os workflows usam estas quando instaladas e seguem as próprias regras quando não. Comandos de
+instalação: [`docs/SKILLS.md`](docs/SKILLS.md).
+
+| Área | Skills |
+|---|---|
+| Frontend | `frontend-design` (Anthropic), `impeccable` (pbakaus), `vercel-react-best-practices`, `vercel-composition-patterns` (Vercel Labs), `animate` (emilkowalski), `web-design`, `avoid-ai-writing` |
+| Backend | `secure-coding`, `bola-detector`, `auth-rbac-scaffold`, `injection-checker`, `openapi-hardener`, `security-test-generator` (apisec-inc) |
+| Arquitetura | `system-design`, `c4-architecture`, `isaqb-architecture-governance`, `secure-architecture-governance` (Kotivskyi) |
+| README | `readme-crafter`, `good-readme`, `curating-readme` |
+
+## Qualidade deste repositório
 
 ```bash
-cd qa
-
-python3 wf_quality_harness.py   # pontua cada workflow em 30+ critérios
-python3 test_quality.py         # gates: sem regressão, skills válidas, fases verificadas
-python3 test_tests.py           # meta-testes: corrompe o harness, prova que ele detecta a corrupção
+python3 qa/lint_skills.py      # frontmatter, limites de tamanho, referências, links, caminhos de máquina
+python3 qa/test_gate.py        # gate e hooks num repositório descartável
+python3 qa/check_upstream.py   # skills vendorizadas atrás do upstream
+claude plugin validate --strict .claude-plugin/plugin.json
 ```
 
-Os meta-testes são a parte legal. Eles quebram o harness e os workflows de propósito e confirmam que o placar *cai*. Se o placar não mudasse, o detetor seria inútil. Esses testes ficam verdes como contrato.
+O CI roda os dois primeiros em todo PR; a checagem de upstream roda todo mês.
 
-## Testes de qualidade e ganhos medidos
+**Ainda não medido:** se o kit melhora o código que um agente produz. Estudos públicos
+([SkillsBench](https://arxiv.org/abs/2602.12670), [SWE-Skills-Bench](https://arxiv.org/abs/2603.15401))
+mostram que skills também podem piorar o resultado, então o próximo passo é um benchmark A/B (com e
+sem o kit) no [Harbor](https://github.com/harbor-framework/harbor), com testes ocultos, score de
+mutação e checagens de segurança.
 
-Números reais das execuções do harness, guardados em `qa/snapshots/baseline-final.json`. A coluna "Antes" é o estado anterior ao refinamento; "Depois" é o resultado após ele.
-
-### Score de qualidade dos workflows (mesma régua, antes → depois)
-
-| Workflow | Antes | Depois | Ganho |
-|---|---|---|---|
-| wf-frontend | 201.0 | 385.5 | +92% |
-| wf-backend | 215.0 | 424.0 | +97% |
-| wf-architecture | 199.9 | 413.7 | +107% |
-| wf-security-review | 332.0 | 390.0 | +17% |
-| **Total** | **615.9** | **1223.2** | **+98.6%** |
-
-Isso é quase exatamente o dobro da qualidade dos workflows, medido com a mesma régua.
-
-A própria régua também ficou mais exigente ao longo do projeto (13 → 30+ critérios: verificação por fase, comandos reais, anti-padrões, critérios de aceite, artefatos, fluxo). Por isso as execuções antigas mostram totais menores: `base-364` (13 critérios) → `baseline-v2` (536.7) → `baseline-v3` (675.0) → `baseline-v4` (884.6) → `baseline-final` (1613.2 nos quatro workflows pontuados). Só o snapshot final está commitado, em `qa/snapshots/baseline-final.json` -- é ele que os gates leem e é ele que se atualiza quando a pontuação muda. A comparação justa acima usa a régua final dos dois lados.
-
-### Gates (checagens de regressão): todos verdes
-
-| Gate | O que verifica | Status |
-|---|---|---|
-| G1 | Score não caiu abaixo do baseline | ✅ |
-| G4 | Toda skill referenciada existe | ✅ 4/4 workflows |
-| G5 | Toda fase tem ≥3 verbos de verificação | ✅ 4/4 workflows |
-| Meta-testes | Corrompe harness/workflows → score cai (prova que o detetor funciona) | ✅ |
-
-### O que o refinamento adicionou
-
-Cada workflow ganhou o mesmo lote de melhorias reais:
-- **Passos de verificação** com comandos de verdade (`curl`, `grep`, `python3`, `git`, `npm`, `pytest`) em vez de prosa.
-- **Checklists de aceite por fase** (portões `[ ]` marcáveis).
-- **Blocos de anti-padrões** por fase (o que não fazer, e por quê).
-- **Seções de comandos executáveis** e **exemplos trabalhados por fase**.
-- **Checkpoints** que pausam pra aprovação do usuário entre fases.
-
-O workflow de segurança ganhou uma regra dura: *nunca afirmar "sem CVE" sem consultar OSV.dev / GitHub Advisory*. O conhecimento do modelo para no cutoff do treino; as fontes vivas não.
-
-### Contexto sobre a meta do "dobro"
-
-O harness tem um teto físico (soma dos caps dos critérios). A meta numérica de "2× do baseline" precisaria de uma régua com mais resolução pra ser expressável, então inflar o score pra bater seria maquiar a métrica. O que foi publicado é a versão honesta: qualidade real ~dobrou na mesma régua (+98.6%), com meta-testes provando que a régua detecta regressão.
-
-
-## Estrutura do repositório
+## Estrutura
 
 ```
-dev-workflows/
-├── README.md            # versão em inglês
-├── README.pt-BR.md      # este arquivo
-├── workflows/           # os cinco workflows em SKILL.md
-│   ├── wf-frontend.md
-│   ├── wf-backend.md
-│   ├── wf-architecture.md
-│   ├── wf-security-review.md
-│   └── wf-readme.md
-├── skills/              # o pilar de segurança, vendorizado (ver skills/NOTICE.md)
-│   ├── safedeps/        #   + arquivos de apoio plays/, templates/, schemas/, docs/
-│   ├── sca-audit/
-│   ├── code-review-security/
-│   ├── api-security-review/
-│   ├── web-security-review/
-│   ├── secrets-scan/
-│   ├── cve-triage/
-│   ├── patch-prioritization/
-│   ├── dependency-scanning/
-│   ├── hermaguard/
-│   ├── design-taste-frontend/      # taste-skill (frontend)
-│   └── redesign-existing-projects/ # taste-skill (frontend)
-├── docs/
-│   └── SKILLS.md        # inventário completo de skills + instalação
-├── CONTRIBUTING.md      # o que melhorar, checks locais, processo de PR
-└── qa/                  # harness de qualidade, gates, meta-testes
-    ├── wf_quality_harness.py
-    ├── test_quality.py
-    ├── test_tests.py
-    ├── baseline.json
-    └── snapshots/
-        └── baseline-final.json
+.claude-plugin/     plugin.json, marketplace.json
+skills/             dev-router, lean-code, workflows wf-*, skills vendorizadas (NOTICE.md)
+agents/             explorer, planner, implementer, reviewer, security-auditor, ui-critic, verifier
+hooks/hooks.json    Stop, PreToolUse, PostToolUse
+scripts/            quality-gate, install.py, hooks/*.py
+adapters/opencode/  plugin do opencode
+qa/                 lint, testes do gate, checagem de upstream
+docs/SKILLS.md      inventário de skills e comandos de instalação
 ```
 
 ## Licença
 
-[MIT](LICENSE) © 2026 [Evandro Fonseca Junior](https://github.com/evandrodevbr)
-
----
-
-<div align="center">
-
-⭐ Se isso te salvar de um "na minha máquina funciona" no merge, dá uma estrela.
-
-</div>
+[MIT](LICENSE) © 2026 [Evandro Fonseca Junior](https://github.com/evandrodevbr). As skills vendorizadas mantêm as próprias licenças ([`skills/NOTICE.md`](skills/NOTICE.md)).
