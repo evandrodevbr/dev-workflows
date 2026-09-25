@@ -1,5 +1,6 @@
 {
   "name": "dev-workflows",
+  "description": "Dev workflows como plugin do Claude Code: roteador por nível, agentes, gate de qualidade e revisão de segurança.",
   "owner": {
     "name": "Evandro Fonseca Junior",
     "url": "https://github.com/evandrodevbr"
