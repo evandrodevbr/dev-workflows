@@ -1,0 +1,304 @@
+#!/usr/bin/env python3
+"""Deterministic quality gate: runs only the checks of the requested tier, scoped to the diff.
+
+Usage: quality-gate [--tier 0-3] [--base REF] [--dir PATH] [--list]
+Writes .dev-workflows/gate.json in the project root. Exit 1 when any check fails.
+A tool that is not installed is reported as "unverified", never as passed.
+"""
+import argparse, json, os, re, shutil, subprocess, sys, tempfile, time, tomllib
+
+CODE_EXT = {".py", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".vue", ".svelte", ".go", ".rs",
+            ".java", ".kt", ".rb", ".php", ".cs", ".sql", ".sh", ".css", ".scss", ".html"}
+JS_EXT = {".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".vue", ".svelte"}
+
+
+def sh(cmd, cwd, timeout=600):
+    t = time.time()
+    try:
+        p = subprocess.run(cmd, cwd=cwd, shell=isinstance(cmd, str), capture_output=True, text=True, timeout=timeout)
+        out, code = (p.stdout + p.stderr), p.returncode
+    except subprocess.TimeoutExpired:
+        out, code = f"timeout after {timeout}s", 124
+    return code, out, round(time.time() - t, 1)
+
+
+def git(args, cwd):
+    code, out, _ = sh(["git", *args], cwd, 60)
+    return out.strip() if code == 0 else None
+
+
+def find_base(root, explicit):
+    if explicit:
+        return explicit
+    for ref in ("origin/HEAD", "origin/main", "origin/master", "main", "master"):
+        mb = git(["merge-base", "HEAD", ref], root)
+        if mb:
+            return mb
+    return "HEAD" if git(["rev-parse", "HEAD"], root) else None
+
+
+def changed_files(root, base):
+    if base is None:
+        return []
+    names = (git(["diff", "--name-only", "--diff-filter=d", base], root) or "").splitlines()
+    names += (git(["ls-files", "--others", "--exclude-standard"], root) or "").splitlines()
+    return sorted({n for n in names if n and not n.startswith(".dev-workflows/") and os.path.isfile(os.path.join(root, n))})
+
+
+def diff_stats(root, base, files):
+    added = removed = 0
+    for line in (git(["diff", "--numstat", base], root) or "").splitlines() if base else []:
+        a, r, _ = (line.split("\t") + ["", ""])[:3]
+        added += int(a) if a.isdigit() else 0
+        removed += int(r) if r.isdigit() else 0
+    for f in (git(["ls-files", "--others", "--exclude-standard"], root) or "").splitlines():
+        if f in files:
+            try:
+                added += sum(1 for _ in open(os.path.join(root, f), errors="ignore"))
+            except OSError:
+                pass
+    return {"files": len(files), "added": added, "removed": removed, "net": added - removed}
+
+
+def deps_at(root, rev):
+    """Dependency names declared in package.json / requirements*.txt / pyproject.toml at a revision (None = working tree)."""
+    def read(path):
+        if rev is None:
+            p = os.path.join(root, path)
+            return open(p).read() if os.path.isfile(p) else None
+        return git(["show", f"{rev}:{path}"], root)
+
+    names = set()
+    pkg = read("package.json")
+    if pkg:
+        try:
+            d = json.loads(pkg)
+            for k in ("dependencies", "devDependencies", "optionalDependencies"):
+                names |= {f"npm:{n}" for n in d.get(k, {})}
+        except ValueError:
+            pass
+    for req in [f for f in os.listdir(root) if re.fullmatch(r"requirements.*\.txt", f)]:
+        for line in (read(req) or "").splitlines():
+            m = re.match(r"\s*([A-Za-z0-9_.\-]+)", line)
+            if m and not line.strip().startswith(("#", "-")):
+                names.add(f"py:{m.group(1).lower()}")
+    py = read("pyproject.toml")
+    if py:
+        try:
+            proj = tomllib.loads(py).get("project", {})
+            for spec in proj.get("dependencies", []) + sum(proj.get("optional-dependencies", {}).values(), []):
+                m = re.match(r"\s*([A-Za-z0-9_.\-]+)", spec)
+                if m:
+                    names.add(f"py:{m.group(1).lower()}")
+        except tomllib.TOMLDecodeError:
+            pass
+    return names
+
+
+def load_config(root):
+    p = os.path.join(root, ".dev-workflows.toml")
+    if not os.path.isfile(p):
+        return {}
+    with open(p, "rb") as f:
+        return tomllib.load(f)
+
+
+def local_bin(root, name):
+    p = os.path.join(root, "node_modules", ".bin", name)
+    return p if os.path.exists(p) else shutil.which(name)
+
+
+def node_pm(root):
+    for lock, pm in (("pnpm-lock.yaml", "pnpm"), ("yarn.lock", "yarn"), ("bun.lockb", "bun"), ("bun.lock", "bun")):
+        if os.path.exists(os.path.join(root, lock)):
+            return pm
+    return "npm"
+
+
+def plan_checks(root, cfg, files, base):
+    """Returns [(name, tier, cmd|None, kind)] ; kind: gate (fails the gate) | info (report only)."""
+    cmds = cfg.get("commands", {})
+    exts = {os.path.splitext(f)[1] for f in files}
+    js_files = [f for f in files if os.path.splitext(f)[1] in JS_EXT]
+    py_files = [f for f in files if f.endswith(".py")]
+    checks = []
+
+    pkg = {}
+    if os.path.isfile(os.path.join(root, "package.json")):
+        try:
+            pkg = json.load(open(os.path.join(root, "package.json"))).get("scripts", {})
+        except ValueError:
+            pkg = {}
+    pm = node_pm(root)
+    is_py = any(os.path.exists(os.path.join(root, f)) for f in ("pyproject.toml", "setup.py", "requirements.txt"))
+    pyproject = {}
+    if os.path.isfile(os.path.join(root, "pyproject.toml")):
+        try:
+            pyproject = tomllib.load(open(os.path.join(root, "pyproject.toml"), "rb"))
+        except tomllib.TOMLDecodeError:
+            pass
+    tool = pyproject.get("tool", {})
+
+    def pick(key, *candidates):
+        if key in cmds:
+            return cmds[key]
+        return next((c for c in candidates if c), None)
+
+    lint = pick("lint",
+                f"{pm} run lint" if "lint" in pkg else None,
+                (local_bin(root, "eslint") and js_files and [local_bin(root, "eslint"), *js_files]),
+                (shutil.which("ruff") and py_files and ["ruff", "check", *py_files]),
+                ("go vet ./..." if os.path.exists(os.path.join(root, "go.mod")) else None),
+                ("cargo clippy -- -D warnings" if os.path.exists(os.path.join(root, "Cargo.toml")) else None))
+    typecheck = pick("typecheck",
+                     next((f"{pm} run {s}" for s in ("typecheck", "type-check", "tsc") if s in pkg), None),
+                     (os.path.exists(os.path.join(root, "tsconfig.json")) and local_bin(root, "tsc") and [local_bin(root, "tsc"), "--noEmit"]),
+                     (("pyright" in tool or os.path.exists(os.path.join(root, "pyrightconfig.json"))) and shutil.which("pyright") and ["pyright"]),
+                     ("mypy" in tool and shutil.which("mypy") and ["mypy", "."]))
+    venv_py = next((os.path.join(root, v, "bin", "python") for v in (".venv", "venv")
+                    if os.path.exists(os.path.join(root, v, "bin", "python"))), "python3")
+    test = pick("test",
+                f"{pm} run test" if "test" in pkg else None,
+                (is_py and [venv_py, "-m", "pytest", "-q"]),
+                ("go test ./..." if os.path.exists(os.path.join(root, "go.mod")) else None),
+                ("cargo test" if os.path.exists(os.path.join(root, "Cargo.toml")) else None))
+    build = pick("build", f"{pm} run build" if "build" in pkg else None)
+
+    checks += [("lint", 0, lint, "gate"), ("typecheck", 0, typecheck, "gate"), ("test", 0, test, "gate")]
+    checks.append(("secrets", 0, "@gitleaks" if shutil.which("gitleaks") else None, "gate"))
+
+    cov = os.path.join(root, cfg.get("coverage", {}).get("report", "coverage.xml"))
+    fail_under = cfg.get("thresholds", {}).get("diff_coverage", 80)
+    checks.append(("diff-coverage", 1,
+                   shutil.which("diff-cover") and os.path.isfile(cov) and base
+                   and ["diff-cover", cov, f"--compare-branch={base}", f"--fail-under={fail_under}"], "gate"))
+    checks.append(("semgrep", 1, shutil.which("semgrep") and base and
+                   ["semgrep", "scan", "--config", "p/default", "--error", "--metrics=off", "--quiet",
+                    "--baseline-commit", base], "gate"))
+    dead = (local_bin(root, "knip") and pkg and [local_bin(root, "knip"), "--no-exit-code"]) or \
+           (shutil.which("vulture") and py_files and ["vulture", *py_files, "--min-confidence", "80"])
+    checks.append(("dead-code", 1, dead, "info"))
+
+    checks.append(("build", 2, build, "gate") if build else ("build", 2, "@skip", "gate"))
+    stryker_cfg = any(os.path.exists(os.path.join(root, f)) for f in
+                      ("stryker.config.mjs", "stryker.config.js", "stryker.config.json", "stryker.conf.js", ".stryker.conf.json"))
+    mut = None
+    if stryker_cfg and local_bin(root, "stryker") and js_files:
+        mut = [local_bin(root, "stryker"), "run", "--mutate", ",".join(js_files)]
+    elif "mutmut" in tool and shutil.which("mutmut"):
+        mut = ["mutmut", "run"]  # ponytail: mutmut 3 runs its configured paths, not only the diff
+    checks.append(("mutation", 2, cmds.get("mutation", mut), "gate"))
+    checks.append(("osv-scanner", 2, shutil.which("osv-scanner") and ["osv-scanner", "scan", "source", "--recursive", "."], "gate"))
+    cruiser = next((f for f in (".dependency-cruiser.js", ".dependency-cruiser.cjs", ".dependency-cruiser.json")
+                    if os.path.exists(os.path.join(root, f))), None)
+    arch = (cruiser and local_bin(root, "depcruise") and js_files and [local_bin(root, "depcruise"), "--config", cruiser, *js_files]) or \
+           (("importlinter" in tool or os.path.exists(os.path.join(root, ".importlinter"))) and shutil.which("lint-imports") and ["lint-imports"])
+    checks.append(("architecture", 2, cmds.get("architecture", arch) or "@skip", "gate"))
+    checks.append(("duplication", 2, local_bin(root, "jscpd") and js_files and [local_bin(root, "jscpd"), *js_files], "info"))
+
+    checks.append(("trivy", 3, shutil.which("trivy") and
+                   ["trivy", "fs", "--exit-code", "1", "--severity", "HIGH,CRITICAL", "--scanners", "vuln,misconfig,secret", "."], "gate"))
+    if cfg.get("spec", {}).get("file"):
+        checks.append(("traceability", 3, "@trace", "gate"))
+
+    for extra in cfg.get("check", []):
+        checks.append((extra["name"], int(extra.get("tier", 2)), extra["cmd"], extra.get("kind", "gate")))
+
+    if not exts & CODE_EXT and files:
+        checks = [c for c in checks if c[0] == "secrets"]
+    return checks
+
+
+def run_gitleaks(root, files):
+    with tempfile.TemporaryDirectory() as tmp:
+        for f in files:
+            dst = os.path.join(tmp, f)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copy2(os.path.join(root, f), dst)
+        return sh(["gitleaks", "dir", "--no-banner", "--redact", tmp], root)
+
+
+def run_trace(root, cfg):
+    spec = cfg["spec"]
+    text = open(os.path.join(root, spec["file"]), errors="ignore").read()
+    ids = sorted(set(re.findall(r"\bREQ-\d+\b", text)))
+    corpus = ""
+    for d in spec.get("tests", ["tests", "test", "src"]):
+        for dirpath, _, names in os.walk(os.path.join(root, d)):
+            for n in names:
+                corpus += open(os.path.join(dirpath, n), errors="ignore").read()
+    missing = [i for i in ids if i not in corpus]
+    msg = f"{len(ids)} requisitos, sem teste: {', '.join(missing) or 'nenhum'}"
+    return (1 if missing or not ids else 0), msg, 0.0
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--tier", type=int, default=int(os.environ.get("DW_TIER", 1)), choices=range(4))
+    ap.add_argument("--base")
+    ap.add_argument("--dir", default=".")
+    ap.add_argument("--list", action="store_true", help="show the planned checks without running them")
+    a = ap.parse_args()
+
+    root = git(["rev-parse", "--show-toplevel"], a.dir) or os.path.abspath(a.dir)
+    cfg = load_config(root)
+    base = find_base(root, a.base)
+    files = changed_files(root, base)
+    planned = [c for c in plan_checks(root, cfg, files, base) if c[1] <= a.tier]
+
+    if a.list:
+        for name, tier, cmd, kind in planned:
+            state = "skip" if cmd == "@skip" else ("unverified (tool/config missing)" if not cmd else "run")
+            print(f"T{tier} {name:14} {kind:4} {state}")
+        return 0
+
+    results = []
+    for name, tier, cmd, kind in planned:
+        if cmd == "@skip":
+            continue
+        if not cmd:
+            results.append({"name": name, "tier": tier, "kind": kind, "status": "unverified"})
+            continue
+        if cmd == "@gitleaks":
+            code, out, secs = run_gitleaks(root, files) if files else (0, "no changed files", 0.0)
+        elif cmd == "@trace":
+            code, out, secs = run_trace(root, cfg)
+        else:
+            code, out, secs = sh(cmd, root, int(cfg.get("timeout", 600)))
+        missing_tool = code == 127 or re.search(r"No module named (pytest|mypy|pyright|ruff)\b", out)
+        status = "unverified" if missing_tool else "info" if kind == "info" else ("pass" if code == 0 else "fail")
+        results.append({"name": name, "tier": tier, "kind": kind, "status": status, "exit": code, "seconds": secs,
+                        "cmd": cmd if isinstance(cmd, str) else " ".join(cmd),
+                        "output_tail": "\n".join(out.strip().splitlines()[-30:])})
+
+    new_deps = sorted(deps_at(root, None) - deps_at(root, base)) if base else []
+    verdict = "fail" if any(r["status"] == "fail" for r in results) else \
+              "incomplete" if any(r["status"] == "unverified" for r in results) else "pass"
+    report = {"verdict": verdict, "tier": a.tier, "base": base, "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+              "diff": diff_stats(root, base, files), "changed_files": files, "new_dependencies": new_deps, "checks": results}
+
+    out_dir = os.path.join(root, ".dev-workflows")
+    os.makedirs(out_dir, exist_ok=True)
+    json.dump(report, open(os.path.join(out_dir, "gate.json"), "w"), indent=2, ensure_ascii=False)
+    with open(os.path.join(out_dir, "log.jsonl"), "a") as log:
+        log.write(json.dumps({k: report[k] for k in ("generated_at", "verdict", "tier", "diff")}) + "\n")
+    exclude = os.path.join(root, ".git", "info", "exclude")
+    if os.path.isdir(os.path.dirname(exclude)):
+        current = open(exclude).read() if os.path.exists(exclude) else ""
+        if ".dev-workflows/" not in current:
+            with open(exclude, "a") as f:
+                f.write("\n.dev-workflows/\n")
+
+    icon = {"pass": "ok", "fail": "FALHOU", "unverified": "não verificado", "info": "info"}
+    for r in results:
+        print(f"  [{icon[r['status']]:>14}] T{r['tier']} {r['name']}")
+    d = report["diff"]
+    print(f"diff: {d['files']} arquivos, +{d['added']} -{d['removed']} (líquido {d['net']})")
+    if new_deps:
+        print("dependências novas (justifique cada uma): " + ", ".join(new_deps))
+    print(f"veredito: {verdict}  ->  {os.path.relpath(os.path.join(out_dir, 'gate.json'), os.getcwd())}")
+    return 1 if verdict == "fail" else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

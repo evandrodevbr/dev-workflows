@@ -1,0 +1,14 @@
+{
+  "name": "dev-workflows",
+  "displayName": "Dev Workflows",
+  "version": "2.0.0",
+  "description": "Workflows de desenvolvimento que escalam com o tamanho do pedido: roteador por nível, agentes com permissão mínima, gate de qualidade determinístico e revisão de segurança com fontes ao vivo.",
+  "author": {
+    "name": "Evandro Fonseca Junior",
+    "url": "https://github.com/evandrodevbr"
+  },
+  "homepage": "https://github.com/evandrodevbr/dev-workflows",
+  "repository": "https://github.com/evandrodevbr/dev-workflows",
+  "license": "MIT",
+  "keywords": ["workflow", "code-review", "security", "frontend", "backend", "quality-gate"]
+}

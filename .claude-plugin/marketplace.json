@@ -1,0 +1,14 @@
+{
+  "name": "dev-workflows",
+  "owner": {
+    "name": "Evandro Fonseca Junior",
+    "url": "https://github.com/evandrodevbr"
+  },
+  "plugins": [
+    {
+      "name": "dev-workflows",
+      "source": "./",
+      "description": "Roteador por nível, agentes, gate de qualidade e workflows de front, back, arquitetura, segurança e README."
+    }
+  ]
+}
