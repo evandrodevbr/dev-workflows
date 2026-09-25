@@ -1,7 +1,9 @@
 # Skills: inventário e origem
 
-Cada skill é um diretório `skills/<nome>/SKILL.md`. O plugin carrega todas; `scripts/install.py`
-copia para o opencode ou o Hermes.
+Cada skill é um diretório `skills/<nome>/SKILL.md`. O plugin Claude carrega todas;
+`scripts/install.py` instala skills e agentes em OpenCode ou OMP e apenas skills no Hermes.
+O adapter OMP gera um pacote nativo independente em `~/.omp/plugins/dev-workflows`,
+registra os sete agentes do repositório e não reutiliza os hooks Claude.
 
 ## Do próprio repositório
 

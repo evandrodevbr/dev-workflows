@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased (2026-09-25)
+
+### Added
+- Catalog sync/list/route for OpenCode and OMP with exact model IDs, public Zen/Go sources, OpenRouter reference tariffs, manually audited Artificial Analysis v1.5/account evidence, provenance, fixed score bands and fail-closed billing checks.
+- Opt-in external goal loop with protected evaluator, isolated detached git worktrees, current quality-gate verification, budgets, evidence, stop/resume and no automatic merge or publish.
+- Native OMP package installation with seven agents and skills; Hermes remains skills-only. Claude Code/OpenCode/OMP goal-loop runners use constrained role tools.
+- Full 2026-09-25 Zen/Go catalog CSV with public-source hashes, missing-score/price coverage and account-eligibility exclusions; CLI and integration regressions.
+
+### Security
+- Autonomous evaluator and quality gate require Linux bubblewrap and run without network access; agent CLIs retain network access for their configured providers. Neither the worktree nor this sandbox guarantees provider-only egress.
+- Detached attempts keep `.git` read-only to untrusted processes, revalidate the worktree before staging, and gate/score separate clean copies of each candidate commit. Unreported paid usage blocks automatic resume.
+- OMP discovery and dispatch validate each advertised thinking level and preserve slash-bearing model IDs; routing requires a matching exact harness or explicit proxy approval and an explicit budget for Zen. OpenRouter long-context overrides affect comparative costs, and archived CSV staleness can be replayed at a fixed UTC time.
+
 ## 2.0.0 (2026-09-24)
 
 ### Added
