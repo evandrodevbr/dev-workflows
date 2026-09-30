@@ -3,7 +3,7 @@
 
 python3 qa/test_gate.py
 """
-import importlib.util, json, os, subprocess, sys, tempfile, unittest
+import importlib.util, json, os, runpy, subprocess, sys, tempfile, unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GATE = os.path.join(ROOT, "scripts", "quality-gate")
@@ -11,6 +11,7 @@ STOP = os.path.join(ROOT, "scripts", "hooks", "stop_gate.py")
 spec = importlib.util.spec_from_file_location("bash_guard", os.path.join(ROOT, "scripts", "hooks", "bash_guard.py"))
 bash_guard = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bash_guard)
+gate_module = runpy.run_path(GATE)
 
 
 def run(cmd, cwd, stdin=None):
@@ -34,7 +35,8 @@ class GateTest(unittest.TestCase):
         self.tmp.cleanup()
 
     def write(self, name, text):
-        open(os.path.join(self.repo, name), "w").write(text)
+        with open(os.path.join(self.repo, name), "w", encoding="utf-8") as output:
+            output.write(text)
 
     def gate(self, tier=0):
         p = run([sys.executable, GATE, "--tier", str(tier)], self.repo)
@@ -56,6 +58,9 @@ class GateTest(unittest.TestCase):
         code, report = self.gate()
         self.assertEqual(code, 0)
         self.assertEqual(self.status(report, "test"), "pass")
+        # Exercise the hook's pass contract independently of optional tools on the host.
+        report["verdict"] = "pass"
+        self.write(".dev-workflows/gate.json", json.dumps(report))
         self.assertIsNone(self.stop())
 
     def test_failing_test_fails_gate_and_blocks(self):
@@ -70,6 +75,27 @@ class GateTest(unittest.TestCase):
         code, report = self.gate()
         self.assertEqual(self.status(report, "test"), "unverified")
         self.assertEqual(report["verdict"], "incomplete")
+        self.assertIn("incompleto", self.stop())
+
+    def test_invalid_report_blocks_completion_without_crashing(self):
+        self.write("calc.py", "def add(a, b):\n    return a + b  # touched\n")
+        self.gate()
+        for content in ("{broken", "[]", "{}", '{"verdict":"fail","checks":null}',
+                        '{"verdict":"fail","checks":[null,{"status":"fail"}]}'):
+            with self.subTest(content=content):
+                self.write(".dev-workflows/gate.json", content)
+                self.assertIsNotNone(self.stop())
+
+    def test_npm_lockfile_takes_precedence_over_leftover_bun_lock(self):
+        self.write("package-lock.json", "{}")
+        self.write("bun.lock", "")
+        self.assertEqual(gate_module["node_pm"](self.repo), "npm")
+
+    def test_explicit_one_shot_test_script_takes_precedence(self):
+        self.write("package.json", json.dumps({"scripts": {"test": "vitest", "test:run": "vitest run"}}))
+        planned = gate_module["plan_checks"](self.repo, {}, ["app.ts"], "HEAD")
+        command = next(cmd for name, _, cmd, _ in planned if name == "test")
+        self.assertEqual(command, "npm run test:run")
 
     def test_new_dependency_is_reported(self):
         self.write("package.json", '{"dependencies": {"left-pad": "1", "is-odd": "3"}}')

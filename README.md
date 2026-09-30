@@ -207,3 +207,11 @@ CI runs skill lint, gate/hook tests, and the behavioral suite on every PR. `pyth
 ## License
 
 [MIT](LICENSE) © 2026 [Evandro Fonseca Junior](https://github.com/evandrodevbr). Vendored skills retain their own licenses; see [`skills/NOTICE.md`](skills/NOTICE.md).
+
+## Review validation (2026-09-30)
+
+The Stop hook now requires a readable `pass` verdict for pending code changes. An `incomplete` report, a missing verdict, or malformed JSON blocks completion and explains how to rerun the gate. This makes the hook agree with the quality gate's rule that missing tools are unverified.
+
+The gate prefers `test:run` over `test` when both scripts exist, avoiding a watch process during unattended validation. It recognizes `package-lock.json` before leftover Bun lockfiles. Explicit commands in `.dev-workflows.toml` still take precedence.
+
+Validate these changes with `python3 -m unittest qa.test_gate -v`. The non-isolation suites can run with `python3 -m unittest qa.test_adapters qa.test_gate qa.test_model_catalog qa.test_model_router qa.test_omp_adapter -q`. Goal-loop execution tests additionally require working bubblewrap namespaces; a restricted namespace is a blocked integration check, not a successful test.

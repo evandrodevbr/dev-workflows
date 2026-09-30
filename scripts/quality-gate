@@ -109,7 +109,7 @@ def local_bin(root, name):
 
 
 def node_pm(root):
-    for lock, pm in (("pnpm-lock.yaml", "pnpm"), ("yarn.lock", "yarn"), ("bun.lockb", "bun"), ("bun.lock", "bun")):
+    for lock, pm in (("pnpm-lock.yaml", "pnpm"), ("yarn.lock", "yarn"), ("package-lock.json", "npm"), ("bun.lockb", "bun"), ("bun.lock", "bun")):
         if os.path.exists(os.path.join(root, lock)):
             return pm
     return "npm"
@@ -158,7 +158,7 @@ def plan_checks(root, cfg, files, base):
     venv_py = next((os.path.join(root, v, "bin", "python") for v in (".venv", "venv")
                     if os.path.exists(os.path.join(root, v, "bin", "python"))), "python3")
     test = pick("test",
-                f"{pm} run test" if "test" in pkg else None,
+                next((f"{pm} run {s}" for s in ("test:run", "test") if s in pkg), None),
                 (is_py and [venv_py, "-m", "pytest", "-q"]),
                 ("go test ./..." if os.path.exists(os.path.join(root, "go.mod")) else None),
                 ("cargo test" if os.path.exists(os.path.join(root, "Cargo.toml")) else None))

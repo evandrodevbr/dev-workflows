@@ -43,10 +43,22 @@ def reason_to_block(cwd):
     newest = max(os.path.getmtime(os.path.join(root, f)) for f in files)
     if os.path.getmtime(report) < newest:
         return f"O código mudou depois do último gate. Rode de novo {run} antes de encerrar."
-    data = json.load(open(report))
+    try:
+        with open(report, encoding="utf-8") as source:
+            data = json.load(source)
+    except (OSError, ValueError):
+        return f"Relatório do gate ilegível ou inválido. Rode {run} antes de encerrar."
+    if not isinstance(data, dict):
+        return f"Relatório do gate inválido. Rode {run} antes de encerrar."
     if data.get("verdict") == "fail":
-        failed = ", ".join(c["name"] for c in data.get("checks", []) if c.get("status") == "fail")
+        checks = data.get("checks", [])
+        if not isinstance(checks, list):
+            checks = []
+        failed = ", ".join(str(c.get("name", "unknown")) for c in checks
+                           if isinstance(c, dict) and c.get("status") == "fail") or "verdict fail"
         return f"O gate falhou em: {failed}. Corrija (veja .dev-workflows/gate.json) ou explique ao usuário por que não dá para corrigir."
+    if data.get("verdict") != "pass":
+        return f"O gate está incompleto: há verificações sem evidência de sucesso. Rode {run} e resolva os checks não verificados antes de encerrar."
     return None
 
 
